@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Skillet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --base-0: #0b0e13;
+    --base-1: #0e1116;
+    --surface: #151a21;
+    --surface-2: #12161c;
+    --surface-hover: #181d25;
+    --line: rgba(255, 255, 255, 0.07);
+    --line-soft: rgba(255, 255, 255, 0.05);
+    --line-bright: rgba(255, 255, 255, 0.13);
+    --accent: #6b7cff;
+    --accent-soft: rgba(107, 124, 255, 0.5);
+    --accent-faint: rgba(107, 124, 255, 0.14);
+    --ink: #e6e9ee;
+    --ink-soft: #9aa4ae;
+    --ink-faint: #5c6670;
+    --ok: #5bb98c;
+    --warn: #d6a548;
+    --bad: #d76b78;
+    --sans: "Geist", "Segoe UI", system-ui, sans-serif;
+    --mono: "Geist Mono", ui-monospace, monospace;
+    --radius: 10px;
+    --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    background-color: var(--base-0);
+    background-image:
+      radial-gradient(900px 600px at 70% -10%, rgba(107, 124, 255, 0.05), transparent 62%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-weight: 400;
+    letter-spacing: 0.005em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .shell {
+    position: relative;
+    z-index: 1;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 40px 40px 90px;
+  }
+
+  /* ---------- HEADER ---------- */
+  header.topbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 4px;
+    position: relative;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-mark {
+    width: 34px; height: 34px;
+    flex: none;
+  }
+  .brand-text h1 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 21px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .brand-text .tag {
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-top: 6px;
+    font-weight: 500;
+  }
+
+  .top-right { display: flex; align-items: center; gap: 22px; }
+  .meta-readout { text-align: right; font-size: 11px; color: var(--ink-faint); letter-spacing: 0.04em; line-height: 1.8; }
+  .meta-readout b { color: var(--ink-soft); font-weight: 600; font-size: 12px; }
+  .editor-chip {
+    display: flex; flex-direction: column; gap: 3px;
+    padding: 8px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    cursor: not-allowed;
+  }
+  .editor-chip .ec-title { font-size: 13px; font-weight: 500; color: var(--ink-soft); letter-spacing: 0.01em; }
+  .editor-chip .ec-sub { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); }
+
+  /* ---------- NAV ---------- */
+  nav.tabs {
+    display: flex;
+    gap: 2px;
+    margin: 28px 0 32px;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    width: fit-content;
+  }
+  .tab {
+    position: relative;
+    font-family: var(--sans);
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--ink-faint);
+    background: none;
+    border: none;
+    padding: 9px 22px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: color 0.25s var(--ease), background 0.25s var(--ease);
+  }
+  .tab:hover { color: var(--ink-soft); }
+  .tab.active {
+    color: var(--ink);
+    background: var(--surface-hover);
+    box-shadow: inset 0 0 0 1px var(--accent-faint);
+  }
+  .tab.active::after {
+    content: "";
+    position: absolute;
+    left: 22px; right: 22px; bottom: 4px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+  .tab .num {
+    font-family: var(--mono);
+    font-size: 11px;
+    opacity: 0.65;
+    margin-left: 7px;
+    letter-spacing: 0;
+  }
+
+  /* ---------- VIEW ---------- */
+  .view { display: none; }
+  .view.show { display: block; animation: viewIn 0.4s var(--ease) both; }
+  @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* control row */
+  .control-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px; margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .search-wrap {
+    position: relative;
+    flex: 1; min-width: 280px; max-width: 440px;
+  }
+  .search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); opacity: 0.7; }
+  .search {
+    width: 100%;
+    font-family: var(--sans);
+    font-weight: 400;
+    font-size: 13.5px;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 11px 14px 11px 40px;
+    transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease), background 0.25s var(--ease);
+  }
+  .search::placeholder { color: var(--ink-faint); letter-spacing: 0.01em; }
+  .search:focus {
+    outline: none;
+    border-color: var(--accent-soft);
+    box-shadow: 0 0 0 3px var(--accent-faint);
+    background: var(--surface);
+  }
+  .legend { display: flex; gap: 18px; font-size: 11px; letter-spacing: 0.02em; color: var(--ink-faint); align-items: center; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+
+  /* group header */
+  .group-head {
+    display: flex; align-items: center; gap: 14px;
+    margin: 6px 0 18px;
+  }
+  .group-head h2 {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: 0.01em;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .group-head .cnt {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--ink-faint);
+  }
+  .group-head .rule { flex: 1; height: 1px; background: var(--line-soft); }
+  .group-archived h2 { color: var(--ink-faint); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+    margin-bottom: 44px;
+  }
+
+  /* ---------- CARD ---------- */
+  .card {
+    position: relative;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 22px 22px 20px;
+    overflow: hidden;
+    transition: transform 0.25s var(--ease), border-color 0.25s var(--ease), background 0.25s var(--ease);
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--line-bright);
+    background: var(--surface-hover);
+  }
+
+  .card.archived {
+    opacity: 0.6;
+  }
+  .card.archived:hover { opacity: 0.85; }
+
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
+  .card-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .card-name {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 15.5px;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    word-break: break-word;
+  }
+  .lock-ico { flex: none; opacity: 0.6; }
+
+  .scope-badge {
+    flex: none;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  .scope-personal { color: var(--ink-soft); }
+  .scope-project { color: var(--ok); border-color: rgba(91,185,140,0.28); }
+  .scope-plugin  { color: var(--accent); border-color: rgba(107,124,255,0.3); }
+
+  .card-desc {
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    letter-spacing: 0.005em;
+    min-height: 40px;
+    margin-bottom: 14px;
+  }
+
+  /* quality + flag badges */
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; min-height: 22px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 9px; font-weight: 500;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 6px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+  }
+  .pill .gem { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .pill-good { color: var(--ok); }
+  .pill-warn { color: var(--warn); }
+  .pill-bad  { color: var(--bad); }
+  .pill-drift { color: var(--warn); border-color: rgba(214,165,72,0.25); }
+  .pill-weak  { color: var(--bad); border-color: rgba(215,107,120,0.25); }
+  .pill-override { color: var(--accent); border-color: rgba(107,124,255,0.25); }
+  .pill-locked { color: var(--ink-soft); }
+  .pill-quality.q-good { color: var(--ok); border-color: rgba(91,185,140,0.25); }
+  .pill-quality.q-warn { color: var(--warn); border-color: rgba(214,165,72,0.25); }
+  .pill-quality.q-bad  { color: var(--bad); border-color: rgba(215,107,120,0.28); }
+
+  /* hairline */
+  .hair { height: 1px; background: var(--line-soft); margin: 0 0 16px; }
+
+  .card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .stats { display: flex; gap: 20px; }
+  .stat .v { font-family: var(--mono); font-weight: 500; font-size: 14px; color: var(--ink); line-height: 1; letter-spacing: -0.01em; }
+  .stat .k { font-size: 8.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); margin-top: 6px; }
+
+  /* toggle */
+  .toggle {
+    position: relative;
+    width: 42px; height: 24px;
+    border-radius: 20px;
+    border: 1px solid var(--line-bright);
+    background: var(--surface-2);
+    cursor: pointer;
+    flex: none;
+    transition: background 0.25s var(--ease), border-color 0.25s var(--ease);
+  }
+  .toggle .knob {
+    position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #6b757f;
+    transition: transform 0.25s var(--ease), background 0.25s var(--ease);
+  }
+  .toggle.on {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .toggle.on .knob { transform: translateX(18px); background: #fff; }
+  .toggle.locked {
+    cursor: not-allowed;
+    opacity: 0.4;
+    border-style: dashed;
+    border-color: var(--ink-faint);
+  }
+  .toggle.locked .knob { background: #3c454d; }
+  .toggle-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .toggle-lbl { font-size: 8.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+
+  /* ---------- MCP ---------- */
+  .mcp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(370px, 1fr)); gap: 14px; }
+  .mcp-card .card-desc { font-size: 12px; }
+  .endpoint {
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 11.5px;
+    letter-spacing: 0;
+    color: var(--ink-soft);
+    background: var(--base-0);
+    border: 1px solid var(--line-soft);
+    border-radius: 7px;
+    padding: 9px 11px;
+    margin-bottom: 14px;
+    word-break: break-all;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mcp-meta { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tag {
+    font-family: var(--mono);
+    font-size: 9.5px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 6px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+  }
+  .tag.http  { color: var(--accent); border-color: rgba(107,124,255,0.28); }
+  .tag.stdio { color: var(--ink-soft); }
+  .status-line { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.01em; color: var(--ink-soft); }
+  .gem-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; position: relative; }
+  .gem-emerald { background: var(--ok); }
+  .gem-amber   { background: var(--warn); }
+  .gem-ruby    { background: var(--bad); }
+  .gem-grey    { background: #49525a; }
+
+  .mcp-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .lock-note { display: inline-flex; align-items: center; gap: 7px; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
+  .btn {
+    font-family: var(--sans); font-size: 10.5px; font-weight: 500;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 7px 15px; border-radius: 8px; cursor: pointer;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    transition: all 0.22s var(--ease);
+  }
+  .btn:hover { border-color: var(--accent-soft); color: var(--ink); background: var(--accent-faint); }
+  .btn-restore { color: var(--ok); border-color: rgba(91,185,140,0.28); }
+  .btn-restore:hover { border-color: var(--ok); color: var(--ok); background: rgba(91,185,140,0.08); }
+  .btn-danger:hover { border-color: var(--bad); color: var(--bad); background: rgba(215,107,120,0.08); }
+
+  /* ---------- HEALTH ---------- */
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 40px; }
+  .tile {
+    position: relative;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 24px 22px;
+    overflow: hidden;
+    transition: border-color 0.25s var(--ease);
+  }
+  .tile:hover { border-color: var(--line-bright); }
+  .tile .big {
+    font-family: var(--sans); font-weight: 600; font-size: 38px; line-height: 0.95;
+    color: var(--ink); letter-spacing: -0.02em;
+  }
+  .tile .lbl { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); margin-top: 12px; font-weight: 500; }
+  .tile.crit .big { color: var(--bad); }
+  .tile.warn .big { color: var(--warn); }
+  .tile.ok .big { color: var(--ok); }
+
+  .findings { display: flex; flex-direction: column; gap: 10px; }
+  .finding {
+    position: relative;
+    display: flex; align-items: center; gap: 18px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 16px 20px 16px 22px;
+    overflow: hidden;
+    transition: border-color 0.22s var(--ease), background 0.22s var(--ease);
+  }
+  .finding::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  }
+  .finding.crit::before { background: var(--bad); }
+  .finding.warn::before { background: var(--warn); }
+  .finding.info::before { background: var(--ok); }
+  .finding:hover { border-color: var(--line-bright); background: var(--surface-hover); }
+  .sev-gem { flex: none; }
+  .finding-body { flex: 1; min-width: 0; }
+  .finding-title { font-family: var(--sans); font-weight: 500; font-size: 14px; letter-spacing: 0; color: var(--ink); }
+  .finding-detail { font-size: 12.5px; font-weight: 400; color: var(--ink-soft); letter-spacing: 0.005em; margin-top: 4px; line-height: 1.5; }
+  .sev-tag { flex: none; font-family: var(--mono); font-size: 9px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 9px; border-radius: 6px; border: 1px solid currentColor; }
+  .sev-tag.crit { color: var(--bad); }
+  .sev-tag.warn { color: var(--warn); }
+  .sev-tag.info { color: var(--ok); }
+
+  .empty {
+    text-align: center; padding: 56px 20px;
+    font-family: var(--sans); font-size: 14px;
+    color: var(--ink-faint); letter-spacing: 0.01em;
+  }
+
+  /* staggered load */
+  .stagger { opacity: 0; transform: translateY(10px); animation: rise 0.5s var(--ease) forwards; }
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+  ::selection { background: var(--accent-faint); color: var(--ink); }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true">
+          <polygon points="50,6 88,28 88,72 50,94 12,72 12,28" fill="none" stroke="#6b7cff" stroke-width="3"/>
+          <circle cx="50" cy="50" r="12" fill="none" stroke="#e6e9ee" stroke-width="3"/>
+          <line x1="62" y1="50" x2="84" y2="50" stroke="#e6e9ee" stroke-width="3"/>
+        </svg>
+        <div class="brand-text">
+          <h1>Skillet</h1>
+          <div class="tag">Skill &amp; MCP Manager</div>
+        </div>
+      </div>
+      <div class="top-right">
+        <div class="meta-readout">
+          <div><b>18</b> Skills &middot; <b>11</b> Server</div>
+          <div>Letzter Scan &middot; vor 2 Min</div>
+        </div>
+        <div class="editor-chip" title="geplant für M3">
+          <span class="ec-title">Editor</span>
+          <span class="ec-sub">geplant · M3</span>
+        </div>
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="loadout">Loadout</button>
+      <button class="tab" data-view="mcp">MCP</button>
+      <button class="tab" data-view="health">Health<span class="num">·6</span></button>
+    </nav>
+
+    <!-- ============ LOADOUT ============ -->
+    <section class="view show" id="view-loadout">
+      <div class="control-row">
+        <div class="search-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9aa4ae" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+          <input class="search" id="skillSearch" type="text" placeholder="Skills durchsuchen — Name oder Beschreibung" />
+        </div>
+        <div class="legend">
+          <span><span class="gem-dot gem-emerald"></span>Gut</span>
+          <span><span class="gem-dot gem-amber"></span>Schwach</span>
+          <span><span class="gem-dot gem-ruby"></span>Mangelhaft</span>
+        </div>
+      </div>
+
+      <div class="group-head" id="head-on">
+        <h2>Aktiv im Scan-Pfad</h2>
+        <span class="cnt" id="cnt-on"></span>
+        <div class="rule"></div>
+      </div>
+      <div class="grid" id="grid-on"></div>
+
+      <div class="group-head group-archived" id="head-off">
+        <h2>Archiviert &middot; deaktiviert</h2>
+        <span class="cnt" id="cnt-off"></span>
+        <div class="rule"></div>
+      </div>
+      <div class="grid" id="grid-off"></div>
+    </section>
+
+    <!-- ============ MCP ============ -->
+    <section class="view" id="view-mcp">
+      <div class="group-head">
+        <h2>MCP Server</h2>
+        <span class="cnt">11 registriert</span>
+        <div class="rule"></div>
+      </div>
+      <div class="mcp-grid" id="grid-mcp"></div>
+    </section>
+
+    <!-- ============ HEALTH ============ -->
+    <section class="view" id="view-health">
+      <div class="tiles" id="tiles"></div>
+      <div class="group-head">
+        <h2>Befunde</h2>
+        <span class="cnt">6 offen</span>
+        <div class="rule"></div>
+      </div>
+      <div class="findings" id="findings"></div>
+    </section>
+  </div>
+
+<script>
+/* ---------- DATA ---------- */
+const SKILLS = [
+  { name:"caveman", scope:"personal", enabled:true,  desc:"Ultra-compressed comms — cuts tokens ~75%. Triggers: caveman mode, be brief, /caveman.", size:"42 KB", files:9, modified:"2h", q:"good", badge:"drift" },
+  { name:"brainstorming", scope:"project", enabled:true, desc:"Explore intent & design before creative work. Wins over plugin copy.", size:"11 KB", files:3, modified:"1d", q:"good", badge:"overrides-plugin" },
+  { name:"deep-research", scope:"personal", enabled:true, desc:"Fan-out web search, adversarial verify, cited report.", size:"88 KB", files:14, modified:"3d", q:"good", badge:"—" },
+  { name:"consult-codex", scope:"personal", enabled:true, desc:"Second opinion via Codex CLI on hard problems.", size:"31 KB", files:6, modified:"5d", q:"good", badge:"—" },
+  { name:"frontend-design", scope:"plugin", enabled:true, desc:"Distinctive production-grade UI, avoids AI-slop.", size:"19 KB", files:4, modified:"—", q:"good", badge:"locked" },
+  { name:"hyperframes", scope:"plugin", enabled:true, desc:"HTML video compositions, captions, TTS, transitions.", size:"4.2 MB", files:89, modified:"—", q:"good", badge:"locked" },
+  { name:"systematic-debugging", scope:"plugin", enabled:true, desc:"Root-cause discipline before fixes.", size:"14 KB", files:3, modified:"—", q:"good", badge:"locked" },
+  { name:"test-driven-development", scope:"plugin", enabled:true, desc:"Red-green-refactor, tests first.", size:"16 KB", files:3, modified:"—", q:"good", badge:"locked" },
+  { name:"antigravity", scope:"personal", enabled:true, desc:"Gemini 3.5 second-opinion agent.", size:"27 KB", files:5, modified:"6d", q:"good", badge:"—" },
+  { name:"brandkit", scope:"personal", enabled:true, desc:"Premium brand boards, logo systems.", size:"120 KB", files:22, modified:"1w", q:"good", badge:"—" },
+  { name:"skillet-dev", scope:"project", enabled:true, desc:"Tauri build conventions for this repo.", size:"8 KB", files:2, modified:"4h", q:"good", badge:"drift" },
+  { name:"image-to-code", scope:"personal", enabled:false, desc:"Generate design image, analyze, implement.", size:"34 KB", files:7, modified:"2w", q:"good", badge:"—" },
+  { name:"industrial-brutalist-ui", scope:"personal", enabled:false, desc:"Raw mechanical Swiss × military terminal.", size:"21 KB", files:4, modified:"3w", q:"good", badge:"—" },
+  { name:"minimalist-ui", scope:"personal", enabled:false, desc:"Clean editorial monochrome bento.", size:"12 KB", files:3, modified:"3w", q:"good", badge:"—" },
+  { name:"mockup-gen", scope:"project", enabled:false, desc:"makes mockups", size:"4 KB", files:1, modified:"1mo", q:"bad", badge:"weak-desc" },
+  { name:"gpt-taste", scope:"personal", enabled:false, desc:"Editorial GSAP motion, AIDA structure.", size:"45 KB", files:8, modified:"1mo", q:"warn", badge:"—" },
+  { name:"stitch-design-taste", scope:"personal", enabled:false, desc:"DESIGN.md generator for Stitch.", size:"17 KB", files:4, modified:"2mo", q:"good", badge:"—" },
+  { name:"remotion-to-hyperframes", scope:"personal", enabled:false, desc:"Port Remotion to HyperFrames.", size:"29 KB", files:6, modified:"2mo", q:"good", badge:"—" }
+];
+
+const MCP = [
+  { name:"github", endpoint:"https://api.githubcopilot.com/mcp/", transport:"http", status:"connected", scope:"user", tools:42, flag:"—" },
+  { name:"specta", endpoint:"https://mcp.blindflug.cloud/", transport:"http", status:"connected", scope:"local", tools:15, flag:"—" },
+  { name:"hostinger", endpoint:"hostinger-api-mcp", transport:"stdio", status:"connected", scope:"user", tools:121, flag:"—" },
+  { name:"microsoft-learn", endpoint:"https://learn.microsoft.com/api/mcp", transport:"http", status:"connected", scope:"user", tools:3, flag:"—" },
+  { name:"plugin:context7:context7", endpoint:"npx -y @upstash/context7-mcp", transport:"stdio", status:"connected", scope:"plugin", tools:2, flag:"managed" },
+  { name:"plugin:playwright:playwright", endpoint:"npx @playwright/mcp@latest", transport:"stdio", status:"connected", scope:"plugin", tools:25, flag:"managed" },
+  { name:"plugin:supabase:supabase", endpoint:"https://mcp.supabase.com/mcp", transport:"http", status:"needs-auth", scope:"plugin", tools:0, flag:"managed" },
+  { name:"claude.ai Gmail", endpoint:"https://gmailmcp.googleapis.com/mcp/v1", transport:"http", status:"needs-auth", scope:"managed", tools:0, flag:"managed" },
+  { name:"claude.ai Google Drive", endpoint:"https://drivemcp.googleapis.com/mcp/v1", transport:"http", status:"needs-auth", scope:"managed", tools:0, flag:"managed" },
+  { name:"claude.ai Google Calendar", endpoint:"https://calendarmcp.googleapis.com/mcp/v1", transport:"http", status:"needs-auth", scope:"managed", tools:0, flag:"managed" },
+  { name:"my-local-server", endpoint:"node ./mcp/server.js (stashed)", transport:"stdio", status:"stashed", scope:"local", tools:0, flag:"stash" }
+];
+
+const FINDINGS = [
+  { sev:"crit", title:"Skill name collision — brainstorming", detail:"Defined in .claude/skills/ (project) and plugin. Project wins, plugin ignored.", fix:"inspect" },
+  { sev:"crit", title:"Duplicate MCP tool name — search", detail:"Exposed by github and microsoft-learn. Claude binds one, ignores rest.", fix:"inspect" },
+  { sev:"warn", title:"Drift on disk — caveman", detail:"SKILL.md changed since last scan. body_hash mismatch.", fix:"re-scan" },
+  { sev:"warn", title:"Drift on disk — skillet-dev", detail:"Modified 4h ago outside Skillet.", fix:"re-scan" },
+  { sev:"warn", title:"Weak description — mockup-gen", detail:"'makes mockups' — no trigger terms. Skill never auto-fires.", fix:"open linter" },
+  { sev:"info", title:"Fat skill — hyperframes", detail:"4.2 MB across 89 files. Review what ships.", fix:"breakdown" }
+];
+
+/* ---------- HELPERS ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const QLABEL = { good:["pill-good","Beschreibung gut"], warn:["pill-warn","Beschreibung schwach"], bad:["pill-bad","Beschreibung dürftig"] };
+
+function badgePill(b){
+  switch(b){
+    case "drift": return `<span class="pill pill-drift"><span class="gem"></span>Drift</span>`;
+    case "weak-desc": return `<span class="pill pill-weak"><span class="gem"></span>Weak Desc</span>`;
+    case "overrides-plugin": return `<span class="pill pill-override"><span class="gem"></span>Overrides Plugin</span>`;
+    case "locked": return `<span class="pill pill-locked"><span class="gem"></span>Locked</span>`;
+    default: return "";
+  }
+}
+
+function qualityPill(q){
+  const [cls,label] = QLABEL[q];
+  const tier = q==="good"?"q-good":q==="warn"?"q-warn":"q-bad";
+  const txt = q==="good"?"Gute Desc":q==="warn"?"Schwache Desc":"Dürftige Desc";
+  return `<span class="pill pill-quality ${tier}" title="${label}"><span class="gem"></span>${txt}</span>`;
+}
+
+function skillCard(s, i){
+  const locked = s.scope === "plugin";
+  const archived = !s.enabled;
+  const scopeCls = "scope-" + s.scope;
+  const lockIco = locked ? `<svg class="lock-ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa4ae" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>` : "";
+  const badges = qualityPill(s.q) + badgePill(s.badge);
+  const modVal = s.modified === "—" ? "—" : s.modified;
+
+  const toggleCls = locked ? "toggle locked" : (s.enabled ? "toggle on" : "toggle");
+  const toggleLbl = locked ? "Gesperrt" : (s.enabled ? "Aktiv" : "Aus");
+  const toggleHtml = `
+    <div class="toggle-wrap">
+      <div class="${toggleCls}" data-name="${esc(s.name)}" ${locked?'aria-disabled="true"':'role="switch"'}>
+        <div class="knob"></div>
+      </div>
+      <span class="toggle-lbl">${toggleLbl}</span>
+    </div>`;
+
+  return `
+  <article class="card stagger ${archived?'archived':''}" style="animation-delay:${i*45}ms">
+    <div class="card-top">
+      <div class="card-name-row">
+        ${lockIco}
+        <span class="card-name">${esc(s.name)}</span>
+      </div>
+      <span class="scope-badge ${scopeCls}">${s.scope}</span>
+    </div>
+    <p class="card-desc">${esc(s.desc)}</p>
+    <div class="badges">${badges}</div>
+    <div class="hair"></div>
+    <div class="card-bottom">
+      <div class="stats">
+        <div class="stat"><div class="v">${s.size}</div><div class="k">Größe</div></div>
+        <div class="stat"><div class="v">${s.files}</div><div class="k">Dateien</div></div>
+        <div class="stat"><div class="v">${modVal}</div><div class="k">Geändert</div></div>
+      </div>
+      ${toggleHtml}
+    </div>
+  </article>`;
+}
+
+function renderSkills(filter=""){
+  const f = filter.trim().toLowerCase();
+  const match = s => !f || s.name.toLowerCase().includes(f) || s.desc.toLowerCase().includes(f);
+  const on  = SKILLS.filter(s => s.enabled  && match(s));
+  const off = SKILLS.filter(s => !s.enabled && match(s));
+
+  const gOn = $("#grid-on"), gOff = $("#grid-off");
+  gOn.innerHTML  = on.length  ? on.map(skillCard).join("")  : `<div class="empty">Keine aktiven Skills gefunden.</div>`;
+  gOff.innerHTML = off.length ? off.map(skillCard).join("") : `<div class="empty">Nichts archiviert.</div>`;
+
+  $("#cnt-on").textContent  = on.length  + (on.length===1?" Skill":" Skills");
+  $("#cnt-off").textContent = off.length + (off.length===1?" Skill":" Skills");
+
+  bindToggles();
+}
+
+function bindToggles(){
+  $$(".toggle:not(.locked)").forEach(t => {
+    t.addEventListener("click", () => {
+      const name = t.dataset.name;
+      const s = SKILLS.find(x => x.name === name);
+      if(!s) return;
+      s.enabled = !s.enabled;
+      renderSkills($("#skillSearch").value);
+    });
+  });
+}
+
+/* ---------- MCP ---------- */
+function statusGem(st){
+  if(st==="connected") return ["gem-emerald","verbunden"];
+  if(st==="needs-auth") return ["gem-amber","Auth erforderlich"];
+  if(st==="stashed") return ["gem-grey","stashed"];
+  return ["gem-grey", st];
+}
+
+function mcpCard(m, i){
+  const managed = m.flag === "managed";
+  const stashed = m.flag === "stash";
+  const [gem, stLabel] = statusGem(m.status);
+  const lockIco = managed ? `<svg class="lock-ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa4ae" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>` : "";
+
+  let action;
+  if(managed){
+    action = `<span class="lock-note">${lockIco}Managed · read-only</span><span class="btn" style="opacity:.35;cursor:not-allowed;pointer-events:none">Remove</span>`;
+  } else if(stashed){
+    action = `<span class="lock-note" style="color:var(--ink-faint)">stashed</span><span class="btn btn-restore">Restore</span>`;
+  } else {
+    action = `<span class="status-line"><span class="gem-dot ${gem}"></span>${stLabel}</span><span class="btn btn-danger">Remove</span>`;
+  }
+
+  return `
+  <article class="card mcp-card stagger" style="animation-delay:${i*45}ms">
+    <div class="card-top">
+      <div class="card-name-row">
+        ${lockIco}
+        <span class="card-name" style="font-size:14px">${esc(m.name)}</span>
+      </div>
+      <span class="scope-badge scope-${m.scope==='plugin'?'plugin':m.scope==='managed'?'plugin':m.scope==='project'?'project':'personal'}">${m.scope}</span>
+    </div>
+    <div class="endpoint">${esc(m.endpoint)}</div>
+    <div class="mcp-meta">
+      <span class="tag ${m.transport}">${m.transport}</span>
+      <span class="status-line"><span class="gem-dot ${gem}"></span>${stLabel}</span>
+      <span class="tag">${m.tools} Tools</span>
+    </div>
+    <div class="hair"></div>
+    <div class="mcp-actions">${action}</div>
+  </article>`;
+}
+
+function renderMCP(){
+  $("#grid-mcp").innerHTML = MCP.map(mcpCard).join("");
+}
+
+/* ---------- HEALTH ---------- */
+function renderHealth(){
+  const tiles = [
+    { cls:"crit", big:"2", lbl:"Konflikte" },
+    { cls:"warn", big:"2", lbl:"Drift" },
+    { cls:"warn", big:"1", lbl:"Schwache Desc" },
+    { cls:"ok",   big:"94%", lbl:"Healthy" }
+  ];
+  $("#tiles").innerHTML = tiles.map((t,i)=>`
+    <div class="tile ${t.cls} stagger" style="animation-delay:${i*60}ms">
+      <div class="big">${t.big}</div>
+      <div class="lbl">${t.lbl}</div>
+    </div>`).join("");
+
+  const gem = s => s==="crit"?"gem-ruby":s==="warn"?"gem-amber":"gem-emerald";
+  const fixLbl = { inspect:"Inspizieren", "re-scan":"Neu scannen", "open linter":"Linter öffnen", breakdown:"Aufschlüsseln" };
+
+  $("#findings").innerHTML = FINDINGS.map((f,i)=>`
+    <div class="finding ${f.sev} stagger" style="animation-delay:${i*55}ms">
+      <span class="gem-dot ${gem(f.sev)} sev-gem"></span>
+      <div class="finding-body">
+        <div class="finding-title">${esc(f.title)}</div>
+        <div class="finding-detail">${esc(f.detail)}</div>
+      </div>
+      <span class="sev-tag ${f.sev}">${f.sev}</span>
+      <button class="btn">${fixLbl[f.fix] || f.fix}</button>
+    </div>`).join("");
+}
+
+/* ---------- NAV ---------- */
+function setView(v){
+  $$(".tab").forEach(t => t.classList.toggle("active", t.dataset.view === v));
+  $$(".view").forEach(sec => sec.classList.toggle("show", sec.id === "view-"+v));
+}
+$("#tabs").addEventListener("click", e => {
+  const t = e.target.closest(".tab");
+  if(t) setView(t.dataset.view);
+});
+
+/* ---------- SEARCH ---------- */
+$("#skillSearch").addEventListener("input", e => renderSkills(e.target.value));
+
+/* ---------- INIT ---------- */
+renderSkills();
+renderMCP();
+renderHealth();
+</script>
+</body>
+</html>

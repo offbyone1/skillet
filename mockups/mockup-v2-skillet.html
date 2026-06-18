@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Skillet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Hanken+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* neutral dark theme, restrained champagne-gold accent */
+    --bg-0: #0c0e12;
+    --bg-1: #111419;
+    --bg-2: #161a21;
+    --surface: #171b22;
+    --surface-2: #1c212a;
+    --surface-hi: #20262f;
+    --line: #262c36;
+    --line-soft: #1e242d;
+    --line-hi: #323a46;
+
+    --ink: #e7eaef;
+    --ink-soft: #a4adba;
+    --ink-faint: #6a7480;
+    --ink-dim: #4f5965;
+
+    --accent: #c9a24b;          /* champagne gold (primary) */
+    --accent-bright: #e3c47e;   /* bright gold */
+    --accent-soft: rgba(201,162,75,0.13);
+    --accent-line: rgba(201,162,75,0.34);
+    --accent-ink: #e3c47e;
+    --accent-ink-soft: #d8b86a;
+
+    --good: #57c08a;
+    --warn: #e0b25a;
+    --bad:  #de7186;
+
+    --good-soft: rgba(87,192,138,0.12);
+    --warn-soft: rgba(224,178,90,0.12);
+    --bad-soft:  rgba(222,113,134,0.12);
+
+    --sans: "Hanken Grotesk", "Segoe UI", sans-serif;
+    --display: "Cormorant Garamond", Georgia, serif;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --sidebar-w: 220px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--bg-0);
+    background-image:
+      radial-gradient(900px 600px at 100% -5%, rgba(201,162,75,0.05), transparent 60%),
+      radial-gradient(700px 500px at -5% 100%, rgba(201,162,75,0.035), transparent 60%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-weight: 400;
+    letter-spacing: 0.005em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection { background: var(--accent-soft); color: var(--ink); }
+
+  /* ====================== SKILLET WATERMARK (brand motif) ====================== */
+  /* Fixed, full-bleed, behind everything. A faint top-down frying pan.            */
+  .skillet-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .skillet-bg svg {
+    /* large but unobtrusive; nudged slightly right-of-center */
+    width: min(75vw, 1100px);
+    height: auto;
+    transform: translateX(7%);
+    overflow: visible;
+  }
+  .skillet-pan   { stroke: #c9a24b; fill: none; opacity: 0.07; }
+  .skillet-hi    { stroke: #e3c47e; fill: none; opacity: 0.05; }
+  .skillet-lip   { stroke: #c9a24b; fill: none; opacity: 0.055; }
+  .skillet-dot   { fill: #c9a24b; opacity: 0.04; }
+
+  /* ====================== LAYOUT SHELL ====================== */
+  .app {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    min-height: 100vh;
+  }
+
+  /* ---------------- SIDEBAR ---------------- */
+  aside.sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w);
+    background: var(--bg-1);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    padding: 26px 16px 18px;
+    z-index: 20;
+  }
+  .wordmark { display: flex; align-items: center; gap: 11px; padding: 0 8px 4px; }
+  .wordmark svg { flex: none; }
+  .wordmark .wm-text { line-height: 1; }
+  .wordmark h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 30px;
+    letter-spacing: 0.01em;
+    color: var(--accent-ink);
+  }
+  .wordmark .wm-sub {
+    font-size: 9.5px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-top: 3px;
+  }
+
+  .nav { display: flex; flex-direction: column; gap: 3px; margin-top: 28px; }
+  .nav-label {
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    padding: 0 10px;
+    margin-bottom: 8px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    background: none;
+    color: var(--ink-soft);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    position: relative;
+    transition: background 0.25s var(--ease), color 0.25s var(--ease), border-color 0.25s var(--ease);
+  }
+  .nav-item svg { flex: none; opacity: 0.85; transition: opacity 0.25s var(--ease); }
+  .nav-item:hover { background: var(--surface); color: var(--ink); }
+  .nav-item.active {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    border-color: var(--accent-line);
+  }
+  .nav-item.active svg { opacity: 1; }
+  .nav-item.active::before {
+    content: "";
+    position: absolute;
+    left: -16px; top: 50%; transform: translateY(-50%);
+    width: 3px; height: 20px; border-radius: 0 3px 3px 0;
+    background: var(--accent);
+  }
+  .nav-item .badge-count {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-faint);
+    background: var(--surface-2);
+    border-radius: 20px;
+    padding: 1px 8px;
+    letter-spacing: 0;
+  }
+  .nav-item.active .badge-count { color: var(--accent-ink); background: rgba(201,162,75,0.16); }
+
+  .nav-spacer { flex: 1; }
+  .nav-secondary { display: flex; flex-direction: column; gap: 3px; }
+  .nav-item.secondary { font-size: 13px; font-weight: 500; color: var(--ink-faint); padding: 8px 12px; }
+  .nav-item.secondary svg { opacity: 0.6; }
+  .nav-item.secondary:hover { color: var(--ink-soft); }
+  .nav-item.secondary.active { color: var(--accent-ink); }
+  .sidebar-foot {
+    margin-top: 14px;
+    padding: 12px 12px 4px;
+    border-top: 1px solid var(--line-soft);
+    font-size: 11px;
+    color: var(--ink-dim);
+    line-height: 1.6;
+  }
+  .sidebar-foot b { color: var(--accent-ink-soft); font-weight: 600; }
+
+  /* ---------------- MAIN ---------------- */
+  main.content {
+    grid-column: 2;
+    padding: 38px 44px 80px;
+    max-width: 1280px;
+  }
+
+  .view { display: none; }
+  .view.show { display: block; animation: viewIn 0.45s var(--ease) both; }
+  @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .page-head { margin-bottom: 26px; padding-bottom: 18px; border-bottom: 1px solid var(--line-soft); position: relative; }
+  .page-head::after {
+    content: ""; position: absolute; left: 0; bottom: -1px;
+    width: 56px; height: 1px; background: var(--accent-line);
+  }
+  .page-head h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 40px;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    line-height: 1.05;
+  }
+  .page-head p {
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-top: 8px;
+    max-width: 760px;
+    font-weight: 400;
+  }
+
+  /* ---------------- CONTROL ROW (skills) ---------------- */
+  .control-row {
+    display: flex; align-items: center; gap: 20px;
+    margin-bottom: 22px; flex-wrap: wrap;
+  }
+  .search-wrap { position: relative; flex: 1; min-width: 260px; max-width: 440px; }
+  .search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); stroke: var(--ink-faint); }
+  .search {
+    width: 100%;
+    font-family: var(--sans);
+    font-size: 14px; font-weight: 400;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px 11px 40px;
+    transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+  }
+  .search::placeholder { color: var(--ink-faint); }
+  .search:focus {
+    outline: none;
+    border-color: var(--accent-line);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .legend { display: flex; gap: 18px; font-size: 11.5px; color: var(--ink-faint); align-items: center; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .dot.good { background: var(--good); }
+  .dot.warn { background: var(--warn); }
+  .dot.bad  { background: var(--bad); }
+
+  /* ---------------- SKILLS GRID + CARDS ---------------- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(308px, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    position: relative;
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 16px 16px 14px;
+    transition: border-color 0.25s var(--ease), background 0.25s var(--ease), transform 0.25s var(--ease);
+  }
+  .card:hover { border-color: var(--accent-line); background: var(--surface-2); }
+  .card.archived { opacity: 0.62; }
+  .card.archived:hover { opacity: 0.85; }
+
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .card-name-row { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .card-name { font-weight: 600; font-size: 15.5px; color: var(--ink); letter-spacing: 0.005em; word-break: break-word; }
+  .qdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .qdot.good { background: var(--good); }
+  .qdot.warn { background: var(--warn); }
+  .qdot.bad  { background: var(--bad); box-shadow: 0 0 0 3px var(--bad-soft); }
+  .lock-ico { flex: none; stroke: var(--ink-faint); }
+
+  .scope-badge {
+    flex: none;
+    font-size: 9.5px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 5px;
+    border: 1px solid var(--line);
+    color: var(--ink-faint);
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  .scope-project { color: var(--good); border-color: rgba(87,192,138,0.3); background: var(--good-soft); }
+  .scope-plugin  { color: var(--accent-ink); border-color: var(--accent-line); background: var(--accent-soft); }
+
+  .card-desc {
+    font-size: 12.5px; line-height: 1.5; color: var(--ink-soft);
+    min-height: 36px; margin-bottom: 12px;
+  }
+  .hair { height: 1px; background: var(--line-soft); margin-bottom: 12px; }
+  .card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .stats { display: flex; gap: 16px; }
+  .stat .v { font-weight: 600; font-size: 13px; color: var(--ink); line-height: 1; }
+  .stat .k { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); margin-top: 4px; }
+
+  /* toggle */
+  .toggle {
+    position: relative; width: 42px; height: 23px; border-radius: 20px;
+    border: 1px solid var(--line-hi); background: var(--surface-hi);
+    cursor: pointer; flex: none;
+    transition: background 0.25s var(--ease), border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+  }
+  .toggle .knob {
+    position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%;
+    background: #9aa4b0; box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    transition: transform 0.25s var(--ease), background 0.25s var(--ease);
+  }
+  .toggle.on { background: var(--accent-soft); border-color: var(--accent-line); box-shadow: 0 0 0 1px rgba(201,162,75,0.12); }
+  .toggle.on .knob { transform: translateX(19px); background: var(--accent); }
+  .toggle.locked { cursor: not-allowed; opacity: 0.4; border-style: dashed; }
+  .toggle.locked .knob { background: var(--ink-dim); }
+  .toggle-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .toggle-lbl { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); }
+
+  .group-head { display: flex; align-items: baseline; gap: 12px; margin: 26px 0 14px; }
+  .group-head h3 { font-family: var(--display); font-weight: 600; font-size: 23px; color: var(--ink-soft); letter-spacing: 0.01em; }
+  .group-head .cnt { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); }
+  .group-head .rule { flex: 1; height: 1px; background: var(--line-soft); }
+
+  /* ---------------- MCP ---------------- */
+  .mcp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
+  .endpoint {
+    font-family: "Hanken Grotesk", monospace;
+    font-size: 11.5px; color: var(--ink-soft);
+    background: var(--bg-0); border: 1px solid var(--line-soft);
+    border-radius: 6px; padding: 7px 10px; margin-bottom: 12px;
+    word-break: break-all; line-height: 1.4;
+  }
+  .mcp-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tag {
+    font-size: 9.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 5px; border: 1px solid var(--line);
+    color: var(--ink-faint); background: var(--surface-2);
+  }
+  .tag.http  { color: var(--accent-ink); border-color: var(--accent-line); background: var(--accent-soft); }
+  .status-line { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--ink-soft); }
+  .status-line .dot.conn { background: var(--good); box-shadow: 0 0 8px rgba(87,192,138,0.5); }
+  .status-line .dot.auth { background: var(--warn); box-shadow: 0 0 8px rgba(224,178,90,0.5); }
+  .status-line .dot.grey { background: var(--ink-dim); }
+  .mcp-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .lock-note { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--ink-faint); }
+
+  /* ---------------- BUTTONS ---------------- */
+  .btn {
+    font-family: var(--sans); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.01em; padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-soft);
+    transition: all 0.2s var(--ease);
+  }
+  .btn:hover { border-color: var(--line-hi); color: var(--ink); background: var(--surface-hi); }
+  .btn-primary {
+    background: var(--accent); border-color: var(--accent); color: #1a1408;
+    box-shadow: 0 6px 18px -8px rgba(201,162,75,0.55);
+  }
+  .btn-primary:hover {
+    background: var(--accent-bright); border-color: var(--accent-bright); color: #1a1408;
+    box-shadow: 0 8px 22px -8px rgba(227,196,126,0.6);
+  }
+  .btn-danger:hover { border-color: rgba(222,113,134,0.5); color: var(--bad); background: var(--bad-soft); }
+  .btn-restore { color: var(--good); border-color: rgba(87,192,138,0.3); }
+  .btn-restore:hover { border-color: var(--good); color: var(--good); background: var(--good-soft); }
+  .btn-sm { padding: 6px 12px; font-size: 11.5px; }
+  .btn[disabled], .btn.inert { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+  /* ---------------- AGENT-STARTER / PROFILES ---------------- */
+  .profile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 6px; }
+  .profile-card {
+    border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line);
+    padding: 20px 18px 16px; display: flex; flex-direction: column;
+    transition: border-color 0.25s var(--ease), background 0.25s var(--ease);
+  }
+  .profile-card:hover { border-color: var(--accent-line); background: var(--surface-2); }
+  .profile-card .pc-name { font-family: var(--display); font-weight: 600; font-size: 27px; color: var(--ink); letter-spacing: 0.01em; }
+  .profile-card .pc-note { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; margin-top: 6px; min-height: 36px; }
+  .pc-counts { display: flex; gap: 16px; margin: 16px 0; }
+  .pc-count { display: flex; flex-direction: column; gap: 3px; }
+  .pc-count .n { font-family: var(--display); font-weight: 700; font-size: 28px; color: var(--accent-ink); line-height: 1; }
+  .pc-count .l { font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); }
+  .pc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .chip {
+    font-size: 10.5px; font-weight: 500; color: var(--ink-soft);
+    background: var(--surface-2); border: 1px solid var(--line-soft);
+    border-radius: 20px; padding: 3px 9px; letter-spacing: 0.01em;
+  }
+  .chip.mcp { color: var(--accent-ink); border-color: var(--accent-line); background: var(--accent-soft); }
+  .pc-actions { display: flex; gap: 8px; margin-top: auto; }
+  .pc-actions .btn { flex: 1; text-align: center; }
+  .profile-card.new {
+    border-style: dashed; border-color: var(--line-hi);
+    align-items: center; justify-content: center; min-height: 220px;
+    color: var(--ink-faint); cursor: pointer; gap: 10px;
+  }
+  .profile-card.new:hover { border-color: var(--accent-line); color: var(--accent-ink); background: var(--accent-soft); }
+  .profile-card.new .plus { font-size: 30px; font-weight: 300; line-height: 1; }
+  .profile-card.new .nt { font-size: 13px; font-weight: 600; }
+
+  .callout {
+    display: flex; gap: 13px; align-items: flex-start;
+    background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 24px;
+  }
+  .callout svg { flex: none; margin-top: 1px; stroke: var(--accent-ink); }
+  .callout p { font-size: 13px; line-height: 1.55; color: var(--ink-soft); }
+  .callout b { color: var(--ink); font-weight: 600; }
+
+  /* ---------------- MODAL ---------------- */
+  .backdrop {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(6,8,11,0.66);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center; padding: 32px;
+  }
+  .backdrop.show { display: flex; animation: fadeIn 0.25s var(--ease) both; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--bg-1); border: 1px solid var(--line-hi);
+    border-radius: 14px; width: 100%;
+    box-shadow: 0 40px 90px -30px rgba(0,0,0,0.8);
+    display: flex; flex-direction: column;
+    max-height: 86vh; animation: modalIn 0.3s var(--ease) both;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+  .modal.wide { max-width: 880px; }
+  .modal.diff { max-width: 600px; border-color: var(--accent-line); box-shadow: 0 40px 90px -30px rgba(0,0,0,0.8), 0 0 0 1px rgba(201,162,75,0.12); }
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 20px 24px; border-bottom: 1px solid var(--line);
+  }
+  .modal-head h3 { font-family: var(--display); font-weight: 600; font-size: 27px; color: var(--ink); letter-spacing: 0.01em; }
+  .modal-head .sub { font-size: 12px; color: var(--ink-faint); margin-top: 3px; }
+  .modal-close { background: none; border: none; color: var(--ink-faint); cursor: pointer; padding: 4px; border-radius: 6px; line-height: 0; }
+  .modal-close:hover { color: var(--ink); background: var(--surface-2); }
+  .modal-body { padding: 20px 24px; overflow-y: auto; }
+  .modal-foot {
+    display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+    padding: 16px 24px; border-top: 1px solid var(--line);
+  }
+  .modal-foot .spacer { flex: 1; font-size: 12px; color: var(--ink-faint); }
+
+  /* edit picker */
+  .name-field { margin-bottom: 18px; }
+  .name-field label { display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 7px; }
+  .name-field input {
+    width: 100%; font-family: var(--sans); font-size: 15px; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 14px;
+  }
+  .name-field input:focus { outline: none; border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .picker-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .picker-col h4 {
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint);
+    margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .picker-col h4 .pc-n { color: var(--accent-ink); font-weight: 700; }
+  .picker-list {
+    border: 1px solid var(--line); border-radius: var(--radius-sm);
+    max-height: 360px; overflow-y: auto; background: var(--surface);
+  }
+  .pick-row {
+    display: flex; align-items: center; gap: 11px; padding: 9px 12px;
+    border-bottom: 1px solid var(--line-soft); cursor: pointer;
+    transition: background 0.18s var(--ease);
+  }
+  .pick-row:last-child { border-bottom: none; }
+  .pick-row:hover { background: var(--surface-2); }
+  .pick-row.locked { opacity: 0.55; cursor: not-allowed; }
+  .pick-check {
+    width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid var(--line-hi);
+    flex: none; display: flex; align-items: center; justify-content: center; transition: all 0.18s var(--ease);
+  }
+  .pick-row.checked .pick-check { background: var(--accent); border-color: var(--accent); }
+  .pick-check svg { opacity: 0; transition: opacity 0.18s var(--ease); }
+  .pick-row.checked .pick-check svg { opacity: 1; }
+  .pick-main { min-width: 0; flex: 1; }
+  .pick-name { font-size: 13px; font-weight: 500; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+  .pick-sub { font-size: 11px; color: var(--ink-faint); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pick-scope { font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; flex: none; }
+
+  /* diff sections */
+  .diff-sec {
+    border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 12px 14px; margin-bottom: 12px; border-left-width: 3px;
+  }
+  .diff-sec.add    { border-left-color: var(--good); background: var(--good-soft); }
+  .diff-sec.remove { border-left-color: var(--bad);  background: var(--bad-soft); }
+  .diff-sec.plus   { border-left-color: var(--accent); background: var(--accent-soft); }
+  .diff-sec.minus  { border-left-color: var(--warn); background: var(--warn-soft); }
+  .diff-sec.locked { border-left-color: var(--ink-dim); background: var(--surface); }
+  .diff-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 9px; }
+  .diff-sec.add    .diff-title { color: var(--good); }
+  .diff-sec.remove .diff-title { color: var(--bad); }
+  .diff-sec.plus   .diff-title { color: var(--accent-ink); }
+  .diff-sec.minus  .diff-title { color: var(--warn); }
+  .diff-sec.locked .diff-title { color: var(--ink-faint); }
+  .diff-title .ic { font-size: 13px; }
+  .diff-items { display: flex; flex-wrap: wrap; gap: 6px; }
+  .diff-item {
+    font-size: 12px; font-weight: 500; color: var(--ink);
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 6px; padding: 3px 9px;
+  }
+  .diff-sec.locked .diff-item { color: var(--ink-soft); }
+  .diff-empty { font-size: 12px; color: var(--ink-faint); font-style: italic; }
+
+  /* ---------------- HEALTH ---------------- */
+  .findings { display: flex; flex-direction: column; gap: 10px; }
+  .finding {
+    position: relative; display: flex; align-items: center; gap: 16px;
+    border-radius: var(--radius); background: var(--surface);
+    border: 1px solid var(--line); border-left: 3px solid var(--line);
+    padding: 14px 18px; transition: border-color 0.25s var(--ease);
+  }
+  .finding.crit { border-left-color: var(--bad); }
+  .finding.warn { border-left-color: var(--warn); }
+  .finding.info { border-left-color: var(--good); }
+  .finding:hover { border-color: var(--accent-line); }
+  .finding.crit:hover { border-left-color: var(--bad); }
+  .finding.warn:hover { border-left-color: var(--warn); }
+  .finding.info:hover { border-left-color: var(--good); }
+  .finding-body { flex: 1; min-width: 0; }
+  .finding-title { font-weight: 600; font-size: 14px; color: var(--ink); }
+  .finding-detail { font-size: 12px; color: var(--ink-soft); margin-top: 3px; line-height: 1.45; }
+  .sev-tag { flex: none; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border-radius: 5px; }
+  .sev-tag.crit { color: var(--bad); background: var(--bad-soft); }
+  .sev-tag.warn { color: var(--warn); background: var(--warn-soft); }
+  .sev-tag.info { color: var(--good); background: var(--good-soft); }
+
+  .empty { text-align: center; padding: 50px 20px; font-size: 14px; color: var(--ink-faint); }
+
+  .stagger { opacity: 0; transform: translateY(10px); animation: rise 0.5s var(--ease) forwards; }
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<!-- ====================== SKILLET WATERMARK ====================== -->
+<!-- Faint top-down frying pan: the brand metaphor (Skillet = pan). Sits behind  -->
+<!-- all content (z-index 0, pointer-events:none). Interior dots injected by JS.  -->
+<div class="skillet-bg" aria-hidden="true">
+  <svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <clipPath id="skillet-surface">
+        <circle cx="430" cy="350" r="268" />
+      </clipPath>
+    </defs>
+    <!-- Handle: thick rounded stroke from the rim toward upper-right (~ -35deg) -->
+    <line class="skillet-pan" x1="675" y1="206" x2="940" y2="20" stroke-width="26" stroke-linecap="round" />
+    <!-- subtle thinner highlight along the handle -->
+    <line class="skillet-hi" x1="690" y1="208" x2="930" y2="40" stroke-width="4" stroke-linecap="round" />
+    <!-- hole near the end of the handle -->
+    <circle class="skillet-pan" cx="912" cy="46" r="13" stroke-width="6" />
+    <!-- Pan body: two concentric circles -->
+    <circle class="skillet-pan" cx="430" cy="350" r="300" stroke-width="7" />
+    <circle class="skillet-pan" cx="430" cy="350" r="268" stroke-width="3" />
+    <!-- Two faint pour-spout lips on the rim (left + lower-left) -->
+    <path class="skillet-lip" d="M132 300 q-30 50 8 96" stroke-width="6" stroke-linecap="round" fill="none" />
+    <path class="skillet-lip" d="M250 612 q44 26 96 6" stroke-width="6" stroke-linecap="round" fill="none" />
+    <!-- Interior "cooking surface" dots (clipped to inner circle, injected by JS) -->
+    <g class="skillet-dots" clip-path="url(#skillet-surface)"></g>
+  </svg>
+</div>
+
+<div class="app">
+  <!-- ====================== SIDEBAR ====================== -->
+  <aside class="sidebar">
+    <div class="wordmark">
+      <svg width="34" height="34" viewBox="0 0 100 100" aria-hidden="true">
+        <rect x="8" y="8" width="84" height="84" rx="20" fill="none" stroke="#c9a24b" stroke-width="5"/>
+        <circle cx="42" cy="50" r="14" fill="none" stroke="#e3c47e" stroke-width="5"/>
+        <line x1="56" y1="50" x2="80" y2="50" stroke="#c9a24b" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+      <div class="wm-text">
+        <h1>Skillet</h1>
+        <div class="wm-sub">Skills &amp; MCP</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">Verwalten</div>
+      <button class="nav-item active" data-view="skills">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+        Skills <span class="badge-count">18</span>
+      </button>
+      <button class="nav-item" data-view="mcp">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><circle cx="7" cy="7" r="0.6" fill="currentColor"/><circle cx="7" cy="17" r="0.6" fill="currentColor"/></svg>
+        MCPs <span class="badge-count">11</span>
+      </button>
+      <button class="nav-item" data-view="starter">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg>
+        Agent-Starter
+      </button>
+    </nav>
+
+    <div class="nav-spacer"></div>
+
+    <div class="nav-secondary">
+      <button class="nav-item secondary" data-view="health">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>
+        Health <span class="badge-count">6</span>
+      </button>
+    </div>
+    <div class="sidebar-foot">
+      <div><b>18</b> Skills &middot; <b>11</b> Server</div>
+      <div>Letzter Scan &middot; vor 2 Min</div>
+    </div>
+  </aside>
+
+  <!-- ====================== MAIN CONTENT ====================== -->
+  <main class="content">
+
+    <!-- ============ VIEW 1: SKILLS ============ -->
+    <section class="view show" id="view-skills">
+      <div class="page-head">
+        <h2>Skills</h2>
+        <p>Alle erkannten Claude-Code-Skills. Aktivieren oder deaktivieren pro Eintrag. Plugin-Skills sind gesperrt.</p>
+      </div>
+      <div class="control-row">
+        <div class="search-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+          <input class="search" id="skillSearch" type="text" placeholder="Skills durchsuchen — Name oder Beschreibung" />
+        </div>
+        <div class="legend">
+          <span><span class="dot good"></span>Gute Desc</span>
+          <span><span class="dot warn"></span>Schwach</span>
+          <span><span class="dot bad"></span>Dürftig</span>
+        </div>
+      </div>
+
+      <div class="group-head"><h3>Aktiv</h3><span class="cnt" id="cnt-on"></span><div class="rule"></div></div>
+      <div class="grid" id="grid-on"></div>
+
+      <div class="group-head"><h3>Deaktiviert</h3><span class="cnt" id="cnt-off"></span><div class="rule"></div></div>
+      <div class="grid" id="grid-off"></div>
+    </section>
+
+    <!-- ============ VIEW 2: MCPs ============ -->
+    <section class="view" id="view-mcp">
+      <div class="page-head">
+        <h2>MCP Server</h2>
+        <p>Registrierte Model-Context-Protocol-Server. <b>plugin:*</b> und <b>claude.ai</b>-Server sind verwaltet und nur lesbar.</p>
+      </div>
+      <div class="mcp-grid" id="grid-mcp"></div>
+    </section>
+
+    <!-- ============ VIEW 3: AGENT-STARTER ============ -->
+    <section class="view" id="view-starter">
+      <div class="page-head">
+        <h2>Agent-Starter</h2>
+        <p>Loadout-Profile bündeln Skills + MCPs für einen bestimmten Arbeitsmodus.</p>
+      </div>
+      <div class="callout">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <p>Profile bündeln Skills + MCPs. <b>Aktivieren wendet exklusiv an</b> — alles Scopebare außerhalb des Profils wird deaktiviert. Plugin- und managed-Einträge bleiben unberührt.</p>
+      </div>
+      <div class="profile-grid" id="grid-profiles"></div>
+    </section>
+
+    <!-- ============ VIEW 4: HEALTH ============ -->
+    <section class="view" id="view-health">
+      <div class="page-head">
+        <h2>Health</h2>
+        <p>Erkannte Befunde aus dem letzten Scan.</p>
+      </div>
+      <div class="group-head"><h3>Befunde</h3><span class="cnt">6 offen</span><div class="rule"></div></div>
+      <div class="findings" id="findings"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ====================== EDIT MODAL ====================== -->
+<div class="backdrop" id="backdrop-edit" data-close>
+  <div class="modal wide">
+    <div class="modal-head">
+      <div>
+        <h3 id="edit-title">Profil bearbeiten</h3>
+        <div class="sub">Skills und MCPs für dieses Profil auswählen.</div>
+      </div>
+      <button class="modal-close" data-close><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="name-field">
+        <label>Profilname</label>
+        <input type="text" id="edit-name" />
+      </div>
+      <div class="picker-cols">
+        <div class="picker-col">
+          <h4>Skills <span class="pc-n" id="pick-skill-n">0</span></h4>
+          <div class="picker-list" id="pick-skills"></div>
+        </div>
+        <div class="picker-col">
+          <h4>MCP Server <span class="pc-n" id="pick-mcp-n">0</span></h4>
+          <div class="picker-list" id="pick-mcps"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span class="spacer">Plugin- und managed-Einträge sind immer aktiv und nicht wählbar.</span>
+      <button class="btn" data-close>Abbrechen</button>
+      <button class="btn btn-primary" data-close>Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== DIFF / ACTIVATE MODAL ====================== -->
+<div class="backdrop" id="backdrop-diff" data-close>
+  <div class="modal diff">
+    <div class="modal-head">
+      <div>
+        <h3 id="diff-title">Profil aktivieren?</h3>
+        <div class="sub">Diese Änderungen werden exklusiv angewendet.</div>
+      </div>
+      <button class="modal-close" data-close><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="diff-body"></div>
+    <div class="modal-foot">
+      <button class="btn" data-close>Abbrechen</button>
+      <button class="btn btn-primary" data-close>Anwenden</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ====================== DATA (lifted from mockup-deco.html) ====================== */
+const SKILLS = [
+  { name:"caveman", scope:"personal", enabled:true,  desc:"Ultra-compressed comms — cuts tokens ~75%. Triggers: caveman mode, be brief, /caveman.", size:"42 KB", files:9, modified:"2h", q:"good", badge:"drift" },
+  { name:"brainstorming", scope:"project", enabled:true, desc:"Explore intent & design before creative work. Wins over plugin copy.", size:"11 KB", files:3, modified:"1d", q:"good", badge:"overrides-plugin" },
+  { name:"deep-research", scope:"personal", enabled:true, desc:"Fan-out web search, adversarial verify, cited report.", size:"88 KB", files:14, modified:"3d", q:"good", badge:"—" },
+  { name:"consult-codex", scope:"personal", enabled:true, desc:"Second opinion via Codex CLI on hard problems.", size:"31 KB", files:6, modified:"5d", q:"good", badge:"—" },
+  { name:"frontend-design", scope:"plugin", enabled:true, desc:"Distinctive production-grade UI, avoids AI-slop.", size:"19 KB", files:4, modified:"—", q:"good", badge:"locked" },
+  { name:"hyperframes", scope:"plugin", enabled:true, desc:"HTML video compositions, captions, TTS, transitions.", size:"4.2 MB", files:89, modified:"—", q:"good", badge:"locked" },
+  { name:"systematic-debugging", scope:"plugin", enabled:true, desc:"Root-cause discipline before fixes.", size:"14 KB", files:3, modified:"—", q:"good", badge:"locked" },
+  { name:"test-driven-development", scope:"plugin", enabled:true, desc:"Red-green-refactor, tests first.", size:"16 KB", files:3, modified:"—", q:"good", badge:"locked" },
+  { name:"antigravity", scope:"personal", enabled:true, desc:"Gemini 3.5 second-opinion agent.", size:"27 KB", files:5, modified:"6d", q:"good", badge:"—" },
+  { name:"brandkit", scope:"personal", enabled:true, desc:"Premium brand boards, logo systems.", size:"120 KB", files:22, modified:"1w", q:"good", badge:"—" },
+  { name:"skillet-dev", scope:"project", enabled:true, desc:"Tauri build conventions for this repo.", size:"8 KB", files:2, modified:"4h", q:"good", badge:"drift" },
+  { name:"image-to-code", scope:"personal", enabled:false, desc:"Generate design image, analyze, implement.", size:"34 KB", files:7, modified:"2w", q:"good", badge:"—" },
+  { name:"industrial-brutalist-ui", scope:"personal", enabled:false, desc:"Raw mechanical Swiss × military terminal.", size:"21 KB", files:4, modified:"3w", q:"good", badge:"—" },
+  { name:"minimalist-ui", scope:"personal", enabled:false, desc:"Clean editorial monochrome bento.", size:"12 KB", files:3, modified:"3w", q:"good", badge:"—" },
+  { name:"mockup-gen", scope:"project", enabled:false, desc:"makes mockups", size:"4 KB", files:1, modified:"1mo", q:"bad", badge:"weak-desc" },
+  { name:"gpt-taste", scope:"personal", enabled:false, desc:"Editorial GSAP motion, AIDA structure.", size:"45 KB", files:8, modified:"1mo", q:"warn", badge:"—" },
+  { name:"stitch-design-taste", scope:"personal", enabled:false, desc:"DESIGN.md generator for Stitch.", size:"17 KB", files:4, modified:"2mo", q:"good", badge:"—" },
+  { name:"remotion-to-hyperframes", scope:"personal", enabled:false, desc:"Port Remotion to HyperFrames.", size:"29 KB", files:6, modified:"2mo", q:"good", badge:"—" }
+];
+
+const MCP = [
+  { name:"github", endpoint:"https://api.githubcopilot.com/mcp/", transport:"http", status:"connected", scope:"user", tools:42, flag:"—" },
+  { name:"specta", endpoint:"https://mcp.blindflug.cloud/", transport:"http", status:"connected", scope:"local", tools:15, flag:"—" },
+  { name:"hostinger", endpoint:"hostinger-api-mcp", transport:"stdio", status:"connected", scope:"user", tools:121, flag:"—" },
+  { name:"microsoft-learn", endpoint:"https://learn.microsoft.com/api/mcp", transport:"http", status:"connected", scope:"user", tools:3, flag:"—" },
+  { name:"plugin:context7:context7", endpoint:"npx -y @upstash/context7-mcp", transport:"stdio", status:"connected", scope:"plugin", tools:2, flag:"managed" },
+  { name:"plugin:playwright:playwright", endpoint:"npx @playwright/mcp@latest", transport:"stdio", status:"connected", scope:"plugin", tools:25, flag:"managed" },
+  { name:"plugin:supabase:supabase", endpoint:"https://mcp.supabase.com/mcp", transport:"http", status:"needs-auth", scope:"plugin", tools:0, flag:"managed" },
+  { name:"claude.ai Gmail", endpoint:"https://gmailmcp.googleapis.com/mcp/v1", transport:"http", status:"needs-auth", scope:"managed", tools:0, flag:"managed" },
+  { name:"claude.ai Google Drive", endpoint:"https://drivemcp.googleapis.com/mcp/v1", transport:"http", status:"needs-auth", scope:"managed", tools:0, flag:"managed" },
+  { name:"claude.ai Google Calendar", endpoint:"https://calendarmcp.googleapis.com/mcp/v1", transport:"http", status:"needs-auth", scope:"managed", tools:0, flag:"managed" },
+  { name:"my-local-server", endpoint:"node ./mcp/server.js (stashed)", transport:"stdio", status:"stashed", scope:"local", tools:0, flag:"stash" }
+];
+
+const FINDINGS = [
+  { sev:"crit", title:"Skill name collision — brainstorming", detail:"Defined in .claude/skills/ (project) and plugin. Project wins, plugin ignored." },
+  { sev:"crit", title:"Duplicate MCP tool name — search", detail:"Exposed by github and microsoft-learn. Claude binds one, ignores rest." },
+  { sev:"warn", title:"Drift on disk — caveman", detail:"SKILL.md changed since last scan. body_hash mismatch." },
+  { sev:"warn", title:"Drift on disk — skillet-dev", detail:"Modified 4h ago outside Skillet." },
+  { sev:"warn", title:"Weak description — mockup-gen", detail:"'makes mockups' — no trigger terms. Skill never auto-fires." },
+  { sev:"info", title:"Fat skill — hyperframes", detail:"4.2 MB across 89 files. Review what ships." }
+];
+
+/* Loadout profiles — reference real mock-data names */
+const PROFILES = [
+  { id:"research", name:"Research", note:"Tiefenrecherche mit Web-Quellen und Doku-Zugriff.",
+    skills:["deep-research","consult-codex"], mcps:["github","microsoft-learn"] },
+  { id:"frontend", name:"Frontend", note:"UI bauen, Marken-Boards, Browser-Tests.",
+    skills:["frontend-design","brandkit"], mcps:["plugin:playwright:playwright"] },
+  { id:"ops", name:"Ops", note:"Infrastruktur, VPS und DNS verwalten.",
+    skills:[], mcps:["hostinger"] }
+];
+
+/* Profile-locked items that are always-on (plugin / managed, nicht scopebar) */
+const ALWAYS_ON = ["frontend-design","hyperframes","plugin:playwright:playwright","claude.ai Gmail"];
+
+/* pretend CURRENT activation state (used for the activate diff) */
+const CURRENT_SKILLS = SKILLS.filter(s => s.enabled && s.scope !== "plugin").map(s => s.name);
+const CURRENT_MCPS = ["github","specta","hostinger","microsoft-learn"];
+
+/* ====================== HELPERS ====================== */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const lockSvg = `<svg class="lock-ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="1.9"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`;
+const checkSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1a1408" stroke-width="3"><path d="M5 12l4 4 10-11"/></svg>`;
+
+/* ====================== SKILLET WATERMARK DOTS ====================== */
+/* Sparse grid of tiny dots evoking a seasoned cooking surface. Clipped to the   */
+/* inner circle of the pan. Generated here, mirroring how the views build markup. */
+function renderSkilletDots(){
+  const g = $(".skillet-dots");
+  if(!g) return;
+  const cx = 430, cy = 350, r = 268;
+  const step = 70;                 /* ~70px spacing */
+  const start = -Math.floor(r/step)*step;
+  let svg = "";
+  for(let x = cx + start; x <= cx + r; x += step){
+    for(let y = cy + start; y <= cy + r; y += step){
+      const dx = x - cx, dy = y - cy;
+      if(dx*dx + dy*dy <= (r - 8)*(r - 8)){   /* keep well inside the rim */
+        svg += `<circle class="skillet-dot" cx="${x}" cy="${y}" r="3" />`;
+      }
+    }
+  }
+  g.innerHTML = svg;
+}
+
+/* ====================== SKILLS ====================== */
+function skillCard(s, i){
+  const locked = s.scope === "plugin";
+  const archived = !s.enabled;
+  const lock = locked ? lockSvg : "";
+  const toggleCls = locked ? "toggle locked" : (s.enabled ? "toggle on" : "toggle");
+  const toggleLbl = locked ? "Gesperrt" : (s.enabled ? "Aktiv" : "Aus");
+  return `
+  <article class="card stagger ${archived?'archived':''}" style="animation-delay:${i*28}ms">
+    <div class="card-top">
+      <div class="card-name-row">
+        <span class="qdot ${s.q}" title="Beschreibungsqualität"></span>
+        ${lock}
+        <span class="card-name">${esc(s.name)}</span>
+      </div>
+      <span class="scope-badge scope-${s.scope}">${esc(s.scope)}</span>
+    </div>
+    <p class="card-desc">${esc(s.desc)}</p>
+    <div class="hair"></div>
+    <div class="card-bottom">
+      <div class="stats">
+        <div class="stat"><div class="v">${esc(s.size)}</div><div class="k">Größe</div></div>
+        <div class="stat"><div class="v">${s.files}</div><div class="k">Dateien</div></div>
+        <div class="stat"><div class="v">${esc(s.modified)}</div><div class="k">Geändert</div></div>
+      </div>
+      <div class="toggle-wrap">
+        <div class="${toggleCls}" data-name="${esc(s.name)}" ${locked?'aria-disabled="true"':'role="switch"'}><div class="knob"></div></div>
+        <span class="toggle-lbl">${toggleLbl}</span>
+      </div>
+    </div>
+  </article>`;
+}
+
+function renderSkills(filter=""){
+  const f = filter.trim().toLowerCase();
+  const match = s => !f || s.name.toLowerCase().includes(f) || s.desc.toLowerCase().includes(f);
+  const on  = SKILLS.filter(s => s.enabled  && match(s));
+  const off = SKILLS.filter(s => !s.enabled && match(s));
+  $("#grid-on").innerHTML  = on.length  ? on.map(skillCard).join("")  : `<div class="empty">Keine aktiven Skills gefunden.</div>`;
+  $("#grid-off").innerHTML = off.length ? off.map(skillCard).join("") : `<div class="empty">Nichts deaktiviert.</div>`;
+  $("#cnt-on").textContent  = on.length  + (on.length===1?" Skill":" Skills");
+  $("#cnt-off").textContent = off.length + (off.length===1?" Skill":" Skills");
+  bindToggles();
+}
+function bindToggles(){
+  $$(".toggle:not(.locked)").forEach(t => t.addEventListener("click", () => {
+    const s = SKILLS.find(x => x.name === t.dataset.name);
+    if(!s) return;
+    s.enabled = !s.enabled;
+    renderSkills($("#skillSearch").value);
+  }));
+}
+
+/* ====================== MCP ====================== */
+function statusInfo(st){
+  if(st==="connected") return ["conn","verbunden"];
+  if(st==="needs-auth") return ["auth","Auth erforderlich"];
+  if(st==="stashed") return ["grey","stashed"];
+  return ["grey", st];
+}
+function mcpScopeCls(scope){
+  if(scope==="plugin"||scope==="managed") return "scope-plugin";
+  if(scope==="project") return "scope-project";
+  return "scope-personal";
+}
+function mcpCard(m, i){
+  const managed = m.flag === "managed";
+  const stashed = m.flag === "stash";
+  const [dotCls, stLabel] = statusInfo(m.status);
+  const lock = managed ? lockSvg : "";
+  let action;
+  if(managed){
+    action = `<span class="lock-note">${lockSvg}Managed · read-only</span><span class="btn btn-sm inert">Entfernen</span>`;
+  } else if(stashed){
+    action = `<span class="lock-note">stashed</span><span class="btn btn-sm btn-restore">Wiederherstellen</span>`;
+  } else {
+    action = `<span class="status-line"><span class="dot ${dotCls}"></span>${stLabel}</span><span class="btn btn-sm btn-danger">Entfernen</span>`;
+  }
+  return `
+  <article class="card stagger" style="animation-delay:${i*28}ms">
+    <div class="card-top">
+      <div class="card-name-row">${lock}<span class="card-name">${esc(m.name)}</span></div>
+      <span class="scope-badge ${mcpScopeCls(m.scope)}">${esc(m.scope)}</span>
+    </div>
+    <div class="endpoint">${esc(m.endpoint)}</div>
+    <div class="mcp-meta">
+      <span class="tag ${m.transport}">${m.transport==='http'?'HTTP':'stdio'}</span>
+      <span class="status-line"><span class="dot ${dotCls}"></span>${stLabel}</span>
+      <span class="tag">${m.tools} Tools</span>
+    </div>
+    <div class="hair"></div>
+    <div class="mcp-actions">${action}</div>
+  </article>`;
+}
+function renderMCP(){ $("#grid-mcp").innerHTML = MCP.map(mcpCard).join(""); }
+
+/* ====================== HEALTH ====================== */
+function renderHealth(){
+  $("#findings").innerHTML = FINDINGS.map((f,i)=>`
+    <div class="finding ${f.sev} stagger" style="animation-delay:${i*40}ms">
+      <div class="finding-body">
+        <div class="finding-title">${esc(f.title)}</div>
+        <div class="finding-detail">${esc(f.detail)}</div>
+      </div>
+      <span class="sev-tag ${f.sev}">${f.sev}</span>
+    </div>`).join("");
+}
+
+/* ====================== AGENT-STARTER / PROFILES ====================== */
+function profileCard(p, i){
+  const skillChips = p.skills.map(n => `<span class="chip">${esc(n)}</span>`).join("");
+  const mcpChips = p.mcps.map(n => `<span class="chip mcp">${esc(n)}</span>`).join("");
+  return `
+  <div class="profile-card stagger" style="animation-delay:${i*40}ms">
+    <div class="pc-name">${esc(p.name)}</div>
+    <div class="pc-note">${esc(p.note)}</div>
+    <div class="pc-counts">
+      <div class="pc-count"><span class="n">${p.skills.length}</span><span class="l">Skills</span></div>
+      <div class="pc-count"><span class="n">${p.mcps.length}</span><span class="l">MCPs</span></div>
+    </div>
+    <div class="pc-chips">${skillChips}${mcpChips}</div>
+    <div class="pc-actions">
+      <button class="btn" data-edit="${p.id}">Bearbeiten</button>
+      <button class="btn btn-primary" data-activate="${p.id}">Aktivieren</button>
+    </div>
+  </div>`;
+}
+function renderProfiles(){
+  const cards = PROFILES.map(profileCard).join("");
+  const newCard = `
+    <div class="profile-card new stagger" id="profile-new" style="animation-delay:${PROFILES.length*40}ms">
+      <span class="plus">+</span>
+      <span class="nt">Neues Profil</span>
+    </div>`;
+  $("#grid-profiles").innerHTML = cards + newCard;
+
+  $$("[data-edit]").forEach(b => b.addEventListener("click", () => openEdit(b.dataset.edit)));
+  $$("[data-activate]").forEach(b => b.addEventListener("click", () => openDiff(b.dataset.activate)));
+  $("#profile-new").addEventListener("click", () => openEdit(null));
+}
+
+/* ---- EDIT MODAL ---- */
+function openEdit(id){
+  const p = PROFILES.find(x => x.id === id);
+  $("#edit-title").textContent = p ? `Profil „${p.name}" bearbeiten` : "Neues Profil";
+  $("#edit-name").value = p ? p.name : "";
+
+  const skillSet = new Set(p ? p.skills : []);
+  const mcpSet = new Set(p ? p.mcps : []);
+
+  $("#pick-skills").innerHTML = SKILLS.map(s => {
+    const locked = s.scope === "plugin";
+    const checked = locked || skillSet.has(s.name);
+    return `
+    <div class="pick-row ${checked?'checked':''} ${locked?'locked':''}" data-kind="skill" data-name="${esc(s.name)}">
+      <div class="pick-check">${checkSvg}</div>
+      <div class="pick-main">
+        <div class="pick-name">${locked?lockSvg:''}${esc(s.name)}</div>
+        <div class="pick-sub">${esc(s.desc)}</div>
+      </div>
+      <span class="pick-scope">${esc(s.scope)}</span>
+    </div>`;
+  }).join("");
+
+  $("#pick-mcps").innerHTML = MCP.map(m => {
+    const locked = m.flag === "managed";
+    const checked = locked || mcpSet.has(m.name);
+    return `
+    <div class="pick-row ${checked?'checked':''} ${locked?'locked':''}" data-kind="mcp" data-name="${esc(m.name)}">
+      <div class="pick-check">${checkSvg}</div>
+      <div class="pick-main">
+        <div class="pick-name">${locked?lockSvg:''}${esc(m.name)}</div>
+        <div class="pick-sub">${esc(m.transport==='http'?'HTTP':'stdio')} · ${m.tools} Tools</div>
+      </div>
+      <span class="pick-scope">${esc(m.scope)}</span>
+    </div>`;
+  }).join("");
+
+  bindPicker();
+  updatePickCounts();
+  showBackdrop("#backdrop-edit");
+}
+function bindPicker(){
+  $$("#backdrop-edit .pick-row:not(.locked)").forEach(r => r.addEventListener("click", () => {
+    r.classList.toggle("checked");
+    updatePickCounts();
+  }));
+}
+function updatePickCounts(){
+  $("#pick-skill-n").textContent = $$("#pick-skills .pick-row.checked").length;
+  $("#pick-mcp-n").textContent = $$("#pick-mcps .pick-row.checked").length;
+}
+
+/* ---- ACTIVATE / DIFF MODAL ---- */
+function diffSection(cls, ic, label, items){
+  const body = items.length
+    ? `<div class="diff-items">${items.map(n=>`<span class="diff-item">${esc(n)}</span>`).join("")}</div>`
+    : `<div class="diff-empty">keine</div>`;
+  return `
+    <div class="diff-sec ${cls}">
+      <div class="diff-title"><span class="ic">${ic}</span>${label}</div>
+      ${body}
+    </div>`;
+}
+function openDiff(id){
+  const p = PROFILES.find(x => x.id === id);
+  if(!p) return;
+  $("#diff-title").textContent = `Profil „${p.name}" aktivieren?`;
+
+  // scopebar skills = personal/project only
+  const profileSkills = p.skills;
+  const scopableCurrent = CURRENT_SKILLS;
+
+  const addSkills    = profileSkills.filter(n => !scopableCurrent.includes(n));
+  const removeSkills = scopableCurrent.filter(n => !profileSkills.includes(n));
+
+  const addMcps    = p.mcps.filter(n => !CURRENT_MCPS.includes(n) && !ALWAYS_ON.includes(n));
+  const removeMcps = CURRENT_MCPS.filter(n => !p.mcps.includes(n) && !ALWAYS_ON.includes(n));
+
+  $("#diff-body").innerHTML =
+    diffSection("add",    "✅", "Aktivieren (Skills)",     addSkills) +
+    diffSection("remove", "⛔", "Deaktivieren (Skills)",   removeSkills) +
+    diffSection("plus",   "➕", "MCP hinzufügen",          addMcps) +
+    diffSection("minus",  "➖", "MCP entfernen",           removeMcps) +
+    diffSection("locked", "🔒", "Immer aktiv (plugin/managed — nicht scopebar)", ALWAYS_ON);
+
+  showBackdrop("#backdrop-diff");
+}
+
+/* ====================== MODAL PLUMBING ====================== */
+function showBackdrop(sel){ $(sel).classList.add("show"); }
+function closeBackdrops(){ $$(".backdrop").forEach(b => b.classList.remove("show")); }
+$$(".backdrop").forEach(b => b.addEventListener("click", e => {
+  if(e.target.hasAttribute("data-close")) closeBackdrops();
+}));
+$$("[data-close]").forEach(el => { if(!el.classList.contains("backdrop")) el.addEventListener("click", closeBackdrops); });
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeBackdrops(); });
+
+/* ====================== NAV ====================== */
+function setView(v){
+  $$(".nav-item").forEach(t => t.classList.toggle("active", t.dataset.view === v));
+  $$(".view").forEach(sec => sec.classList.toggle("show", sec.id === "view-"+v));
+}
+$$(".nav-item").forEach(t => t.addEventListener("click", () => setView(t.dataset.view)));
+$("#skillSearch").addEventListener("input", e => renderSkills(e.target.value));
+
+/* ====================== INIT ====================== */
+renderSkilletDots();
+renderSkills();
+renderMCP();
+renderHealth();
+renderProfiles();
+</script>
+</body>
+</html>
