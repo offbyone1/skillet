@@ -501,7 +501,7 @@
           <p>Loadout-Profile starten <b>claude</b> oder <b>codex</b> im gewählten Verzeichnis mit genau diesen Skills + MCPs. Isoliert pro Start — deine globale Config bleibt unberührt.</p>
         </div>
 
-        {#snippet profileCard(p, i)}
+        {#snippet profileCard(p: Loadout, i: number)}
           <div class="profile-card stagger" style="animation-delay:{i * 40}ms">
             <div class="pc-name">{p.name}</div>
             <div class="pc-note">{p.note || "—"}</div>
@@ -662,5 +662,176 @@
         </div>
       </div>
     </div>
+  </div>
+{/if}
+
+<!-- ====================== EDIT LOADOUT MODAL ====================== -->
+{#if editing}
+  <div class="backdrop show" role="presentation" onclick={(e) => e.target === e.currentTarget && (editing = null)}>
+    <div class="modal wide" role="dialog" aria-modal="true" tabindex="-1">
+      <div class="modal-head">
+        <div>
+          <h3>{editIsNew ? "Neues Loadout" : "Loadout bearbeiten"}</h3>
+          <div class="sub">Startet <b>{editing.agent}</b> mit exakt diesem Set.</div>
+        </div>
+        <button class="modal-close" aria-label="Schließen" onclick={() => (editing = null)}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="ff grow"><label>Name</label><input bind:value={editing.name} placeholder="z.B. Research" /></div>
+          <div class="ff"><label>Agent</label>
+            <select bind:value={editing.agent}>
+              <option value="claude">claude</option>
+              <option value="codex">codex</option>
+            </select>
+          </div>
+        </div>
+        <div class="name-field"><label>Notiz</label><input bind:value={editing.note} placeholder="kurz, optional" /></div>
+
+        <div class="form-row">
+          <div class="ff grow"><label>Model</label>
+            <input bind:value={editing.model} placeholder={editing.agent === "codex" ? "z.B. gpt-5.5" : "opus / sonnet / haiku / fable"} />
+          </div>
+          <div class="ff"><label>Effort {editing.agent !== "claude" ? "(claude)" : ""}</label>
+            <select bind:value={editing.effort} disabled={editing.agent !== "claude"}>
+              <option value={null}>—</option>
+              <option value="low">low</option>
+              <option value="medium">medium</option>
+              <option value="high">high</option>
+              <option value="xhigh">xhigh</option>
+              <option value="max">max</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="name-field"><label>Arbeitsverzeichnis (Default — beim Start überschreibbar)</label>
+          <div class="wd-row">
+            <input bind:value={editing.workdir} placeholder="C:\\Users\\…\\projekt" />
+            <button class="btn" onclick={chooseEditWorkdir}>Wählen…</button>
+          </div>
+        </div>
+
+        <div class="name-field"><label>Prompt (leer = interaktiv · gesetzt = headless <code>-p</code>)</label>
+          <textarea class="ta" bind:value={editing.prompt} rows="2" placeholder="optionaler Start-Prompt"></textarea>
+        </div>
+
+        <div class="toggle-row">
+          <span class="toggle-wrap">
+            <button type="button" class="toggle {editing.skipPerms ? 'on' : ''}" role="switch" aria-checked={editing.skipPerms} onclick={() => editing && (editing.skipPerms = !editing.skipPerms)}>
+              <span class="knob"></span>
+            </button>
+            <span class="toggle-lbl"><code>--dangerously-skip-permissions</code></span>
+          </span>
+        </div>
+
+        {#if editing.agent === "claude"}
+          <div class="picker-cols">
+            <div class="picker-col">
+              <h4>Skills <span class="pc-n">{editing.skills.length}</span></h4>
+              <div class="picker-list">
+                {#if loading}
+                  <div class="pick-empty">Scanne …</div>
+                {:else}
+                  {#each skills as s (s.path)}
+                    <div class="pick-row {skillSelected(s) ? 'checked' : ''}" role="button" tabindex="0"
+                      onclick={() => toggleSkillSel(s)}
+                      onkeydown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), toggleSkillSel(s))}>
+                      <span class="pick-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0b0d10" stroke-width="3"><path d="M5 12l5 5 9-11" /></svg></span>
+                      <span class="pick-main"><span class="pick-name">{s.name}</span><span class="pick-sub">{s.description}</span></span>
+                      <span class="pick-scope">{s.plugin ?? s.scope}</span>
+                    </div>
+                  {/each}
+                {/if}
+              </div>
+            </div>
+            <div class="picker-col">
+              <h4>MCPs <span class="pc-n">{editing.mcps.length}</span></h4>
+              <div class="picker-list">
+                {#if mcpLoading}
+                  <div class="pick-empty">Lese MCP-Server …</div>
+                {:else if isolatableMcp.length}
+                  {#each isolatableMcp as m (m.name)}
+                    <div class="pick-row {mcpSelected(m) ? 'checked' : ''}" role="button" tabindex="0"
+                      onclick={() => toggleMcpSel(m)}
+                      onkeydown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), toggleMcpSel(m))}>
+                      <span class="pick-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0b0d10" stroke-width="3"><path d="M5 12l5 5 9-11" /></svg></span>
+                      <span class="pick-main"><span class="pick-name">{m.name}</span><span class="pick-sub">{m.endpoint}</span></span>
+                      <span class="pick-scope">{m.scope}</span>
+                    </div>
+                  {/each}
+                {:else}
+                  <div class="pick-empty">Keine isolierbaren Server.</div>
+                {/if}
+              </div>
+              <p class="hint">Plugin-/managed-Server (<code>plugin:*</code>, <code>claude.ai</code>) sind nicht isolierbar und ausgeblendet.</p>
+            </div>
+          </div>
+        {:else}
+          <div class="callout">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></svg>
+            <p>Skill- und MCP-Isolation gelten nur für <b>claude</b>. Codex nutzt sein eigenes Plugin-/MCP-System — hier zählen nur Verzeichnis, Model, Prompt und skip-perms.</p>
+          </div>
+        {/if}
+      </div>
+      <div class="modal-foot">
+        <span class="spacer"></span>
+        <button class="btn" onclick={() => (editing = null)}>Abbrechen</button>
+        <button class="btn btn-accent" onclick={saveEdit}>Speichern</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- ====================== LAUNCH MODAL ====================== -->
+{#if launching}
+  <div class="backdrop show" role="presentation" onclick={(e) => e.target === e.currentTarget && (launching = null)}>
+    <div class="modal" role="dialog" aria-modal="true" tabindex="-1" style="max-width:540px">
+      <div class="modal-head">
+        <div>
+          <h3>Starten: {launching.name}</h3>
+          <div class="sub">{launching.agent}{launching.prompt?.trim() ? " · headless" : " · interaktiv"}</div>
+        </div>
+        <button class="modal-close" aria-label="Schließen" onclick={() => (launching = null)}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="name-field"><label>Arbeitsverzeichnis</label>
+          <div class="wd-row">
+            <input bind:value={launchWorkdir} placeholder="Verzeichnis wählen…" />
+            <button class="btn" onclick={chooseLaunchWorkdir}>Wählen…</button>
+          </div>
+        </div>
+        {#if launchTrust.length}
+          <div class="callout">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" /></svg>
+            <p><b>Projekt-Config im Verzeichnis:</b> {launchTrust.join(", ")}. Diese werden geladen und vom Agent ausgeführt/beachtet.</p>
+          </div>
+        {/if}
+        {#if launchRisky}
+          <label class="trust-confirm">
+            <input type="checkbox" bind:checked={trustConfirmed} />
+            Ich vertraue diesem Verzeichnis — Start mit {launching.skipPerms ? "skip-permissions" : ""}{launching.skipPerms && launching.prompt?.trim() ? " + " : ""}{launching.prompt?.trim() ? "headless" : ""}.
+          </label>
+        {/if}
+        {#if launchErr}<div class="launch-err">{launchErr}</div>{/if}
+      </div>
+      <div class="modal-foot">
+        <span class="spacer"></span>
+        <button class="btn" onclick={() => (launching = null)}>Abbrechen</button>
+        <button class="btn btn-accent" disabled={launchBusy} onclick={confirmLaunch}>{launchBusy ? "Starte…" : "Starten"}</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if toast}
+  <div class="toast" role="status">
+    <span>{toast}</span>
+    <button aria-label="Schließen" onclick={() => (toast = "")}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
+    </button>
   </div>
 {/if}
