@@ -55,13 +55,19 @@ fn preflight_workdir(workdir: String) -> Vec<String> {
 }
 
 /// Launch the agent for the profile `id`, optionally overriding its workdir.
+/// `confirmed` is the user's trust acknowledgement; the backend enforces the
+/// trust-gate for risky launches regardless of the UI (§4.2).
 #[tauri::command]
-fn launch_agent(id: String, workdir_override: Option<String>) -> Result<String, String> {
+fn launch_agent(
+    id: String,
+    workdir_override: Option<String>,
+    confirmed: bool,
+) -> Result<String, String> {
     let profile = profiles::list()
         .into_iter()
         .find(|p| p.id == id)
         .ok_or_else(|| format!("Profil nicht gefunden: {id}"))?;
-    launch::run(&profile, workdir_override)
+    launch::run(&profile, workdir_override, confirmed)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -13,8 +13,8 @@ export const saveProfile = (profile: Loadout) => invoke<void>("save_profile", { 
 export const deleteProfile = (id: string) => invoke<void>("delete_profile", { id });
 export const preflightWorkdir = (workdir: string) =>
   invoke<string[]>("preflight_workdir", { workdir });
-export const launchAgent = (id: string, workdirOverride: string | null) =>
-  invoke<string>("launch_agent", { id, workdirOverride });
+export const launchAgent = (id: string, workdirOverride: string | null, confirmed: boolean) =>
+  invoke<string>("launch_agent", { id, workdirOverride, confirmed });
 
 /** Native folder picker (Tauri dialog). Returns the chosen path or null. */
 export const pickFolder = async (defaultPath?: string) => {

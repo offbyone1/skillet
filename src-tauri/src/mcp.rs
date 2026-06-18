@@ -49,17 +49,15 @@ pub fn resolve_specs(workdir: &Path, refs: &[McpRef]) -> (Map<String, Value>, Ve
     let mut unresolved = Vec::new();
 
     for r in refs {
-        // Prefer the ref's own scope; fall back to any source that has the name.
+        // Strict: resolve ONLY within the ref's declared scope — no cross-scope
+        // fallback (that could launch a different same-named server). A miss for
+        // the launch workdir is an error, surfaced to the user.
         let picked = match r.scope.as_str() {
             "user" => user.get(&r.name),
             "local" => local.get(&r.name),
             "project" => project.get(&r.name),
             _ => None,
-        }
-        .or_else(|| user.get(&r.name))
-        .or_else(|| local.get(&r.name))
-        .or_else(|| project.get(&r.name));
-
+        };
         match picked {
             Some(spec) => {
                 out.insert(r.name.clone(), spec.clone());

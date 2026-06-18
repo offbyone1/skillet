@@ -1,11 +1,20 @@
 <script lang="ts">
   import "$lib/global.css";
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import Settings from "$lib/components/Settings.svelte";
+  import { settings, applySettings, persist } from "$lib/settings.svelte";
 
   let { children } = $props();
 
   // custom window chrome (decorations are off in tauri.conf.json)
   const appWindow = getCurrentWindow();
+
+  // keep <html> data-* attributes and localStorage in sync with settings
+  $effect(() => {
+    void [settings.theme, settings.reduceMotion, settings.showBackdrop];
+    applySettings();
+    persist();
+  });
 </script>
 
 <!-- thin transparent drag strip across the top; only the controls at the right
@@ -64,3 +73,5 @@
 </div>
 
 {@render children()}
+
+<Settings />

@@ -7,6 +7,17 @@
   import type { Skill, McpServer, Finding, Loadout, SkillRef, McpRef, AgentKind } from "$lib/types";
   import SkillCard from "$lib/components/SkillCard.svelte";
   import McpCard from "$lib/components/McpCard.svelte";
+  import { ui as settingsUi } from "$lib/settings.svelte";
+
+  // open the settings pop-out, growing it out of the sidebar button
+  function openSettings(e: Event) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    settingsUi.origin = {
+      x: Math.round(r.left + r.width / 2 - window.innerWidth / 2),
+      y: Math.round(r.top + r.height / 2 - window.innerHeight / 2),
+    };
+    settingsUi.open = true;
+  }
 
   let view = $state<"skills" | "mcp" | "starter" | "health">("skills");
   let density = $state<"cards" | "list">("cards");
@@ -214,28 +225,27 @@
     }
   }
 
+  async function refreshTrust(dir: string) {
+    trustConfirmed = false; // a changed dir invalidates a prior confirmation
+    launchTrust = [];
+    if (!dir.trim()) return;
+    try {
+      launchTrust = await preflightWorkdir(dir);
+    } catch (e) {
+      console.error(e);
+    }
+  }
   async function openLaunch(p: Loadout) {
     launching = p;
     launchWorkdir = p.workdir;
     launchErr = "";
-    launchTrust = [];
-    if (p.workdir) {
-      try {
-        launchTrust = await preflightWorkdir(p.workdir);
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    await refreshTrust(p.workdir);
   }
   async function chooseLaunchWorkdir() {
     const dir = await pickFolder(launchWorkdir);
     if (dir) {
       launchWorkdir = dir;
-      try {
-        launchTrust = await preflightWorkdir(dir);
-      } catch (e) {
-        console.error(e);
-      }
+      await refreshTrust(dir);
     }
   }
   // Trust-gate (§4.2): launching with -p or skip-perms into a dir that carries
@@ -254,7 +264,7 @@
     launchBusy = true;
     launchErr = "";
     try {
-      const msg = await launchAgent(launching.id, launchWorkdir || null);
+      const msg = await launchAgent(launching.id, launchWorkdir || null, trustConfirmed);
       toast = msg;
       launching = null;
       trustConfirmed = false;
@@ -345,6 +355,10 @@
       <button class="nav-item secondary {view === 'health' ? 'active' : ''}" onclick={() => (view = "health")}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2 6 4-14 2 8h6" /></svg>
         Health <span class="badge-count">{findings.length}</span>
+      </button>
+      <button class="nav-item secondary" onclick={openSettings}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 13.5a7.8 7.8 0 0 0 0-3l1.8-1.4-2-3.4-2.1.9a7.6 7.6 0 0 0-2.6-1.5L13.9 2h-3.8l-.6 2.1a7.6 7.6 0 0 0-2.6 1.5l-2.1-.9-2 3.4 1.8 1.4a7.8 7.8 0 0 0 0 3L2.8 15l2 3.4 2.1-.9a7.6 7.6 0 0 0 2.6 1.5l.6 2.1h3.8l.6-2.1a7.6 7.6 0 0 0 2.6-1.5l2.1.9 2-3.4z" /></svg>
+        Einstellungen
       </button>
     </div>
     <div class="sidebar-foot">
@@ -800,7 +814,7 @@
       <div class="modal-body">
         <div class="name-field"><label>Arbeitsverzeichnis</label>
           <div class="wd-row">
-            <input bind:value={launchWorkdir} placeholder="Verzeichnis wählen…" />
+            <input bind:value={launchWorkdir} placeholder="Verzeichnis wählen…" onchange={() => refreshTrust(launchWorkdir)} />
             <button class="btn" onclick={chooseLaunchWorkdir}>Wählen…</button>
           </div>
         </div>

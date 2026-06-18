@@ -1274,6 +1274,95 @@ main.content {
   }
 }
 
+/* ---------------- SETTINGS POP-OUT ---------------- */
+.pop-settings {
+  max-width: 460px;
+}
+.set-gear {
+  color: var(--accent-ink);
+}
+.set-body {
+  padding: 6px 24px 18px;
+}
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.set-row:last-child {
+  border-bottom: none;
+}
+.set-label {
+  min-width: 0;
+}
+.set-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.set-hint {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* ---------------- THEME: LIGHT ---------------- */
+:root[data-theme="light"] {
+  --bg-0: #f3f1ea;
+  --bg-1: #ffffff;
+  --bg-2: #efece3;
+  --surface: #ffffff;
+  --surface-2: #f5f2ea;
+  --surface-hi: #ece7da;
+  --line: #e3ddce;
+  --line-soft: #ece7db;
+  --line-hi: #d3c9b5;
+
+  --ink: #20242b;
+  --ink-soft: #4f5760;
+  --ink-faint: #7c838c;
+  --ink-dim: #9aa0a8;
+
+  --accent: #b8862b;
+  --accent-bright: #cda23f;
+  --accent-soft: rgba(184, 134, 43, 0.12);
+  --accent-line: rgba(184, 134, 43, 0.36);
+  --accent-ink: #9a7320;
+  --accent-ink-soft: #b08a33;
+
+  --good: #2e9c63;
+  --warn: #b07d1c;
+  --bad: #c63b54;
+
+  --good-soft: rgba(46, 156, 99, 0.13);
+  --warn-soft: rgba(176, 125, 28, 0.14);
+  --bad-soft: rgba(198, 59, 84, 0.12);
+}
+[data-theme="light"] body {
+  background-color: var(--bg-0);
+  background-image:
+    radial-gradient(900px 600px at 100% -5%, rgba(184, 134, 43, 0.06), transparent 60%),
+    radial-gradient(700px 500px at -5% 100%, rgba(184, 134, 43, 0.04), transparent 60%);
+}
+
+/* ---------------- REDUCE MOTION ---------------- */
+[data-motion="reduced"] *,
+[data-motion="reduced"] *::before,
+[data-motion="reduced"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* ---------------- BACKGROUND PATTERN TOGGLE ---------------- */
+[data-backdrop="off"] .ascii-bg {
+  display: none;
+}
+
 /* ---------------- CUSTOM TITLEBAR (decorations off) ---------------- */
 .titlebar {
   position: fixed;

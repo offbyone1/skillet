@@ -61,9 +61,31 @@ pub fn preflight_scan(workdir: &str) -> Vec<String> {
 }
 
 /// Launch an agent for `profile`. Returns a short human status on success.
-pub fn run(profile: &Loadout, workdir_override: Option<String>) -> Result<String, String> {
+///
+/// `confirmed` carries the user's explicit trust acknowledgement. The gate is
+/// enforced HERE (not only in the UI): a risky launch (`-p` or `skip_perms`)
+/// into a workdir that carries project config is refused unless confirmed.
+pub fn run(
+    profile: &Loadout,
+    workdir_override: Option<String>,
+    confirmed: bool,
+) -> Result<String, String> {
     let workdir = resolve_workdir(profile, workdir_override)?;
     let workdir_str = workdir.to_string_lossy().to_string();
+
+    // Trust-gate (§4.2) — server-side, not bypassable from the UI.
+    let risky = profile.skip_perms || profile.prompt.as_deref().is_some_and(|s| !s.trim().is_empty());
+    if risky && !confirmed {
+        let trust = preflight_scan(&workdir_str);
+        if !trust.is_empty() {
+            return Err(format!(
+                "Vertrauen erforderlich: {} enthält {} — Start mit -p/skip-perms abgelehnt ohne Bestätigung.",
+                workdir_str,
+                trust.join(", ")
+            ));
+        }
+    }
+
     let run_dir = make_run_dir()?;
     let runtime = run_dir.join("runtime");
     fs::create_dir_all(&runtime).map_err(|e| format!("runtime dir: {e}"))?;
@@ -88,7 +110,7 @@ pub fn run(profile: &Loadout, workdir_override: Option<String>) -> Result<String
         )
     };
 
-    let script = write_launcher(&runtime, &exe, &args, &workdir_str, keep_open)?;
+    let script = write_launcher(&runtime, &exe, &args, &workdir_str, keep_open, &run_dir)?;
     spawn_terminal(&script, &workdir)?;
     Ok(format!("{} gestartet in {}", profile.agent, workdir_str))
 }
@@ -115,27 +137,68 @@ fn project_skills_into(skills_root: &Path, refs: &[SkillRef]) -> Result<(), Stri
     }
     let scanned = skills::scan_all();
     for r in refs {
-        let src = resolve_skill_src(r, &scanned)
+        // Resolve ONLY against the live scan — never trust an arbitrary stored
+        // path. Disambiguate by path, then name+scope, then name.
+        let found = scanned
+            .iter()
+            .find(|s| !r.path.is_empty() && s.path == r.path)
+            .or_else(|| scanned.iter().find(|s| s.name == r.name && s.scope == r.scope))
+            .or_else(|| scanned.iter().find(|s| s.name == r.name))
             .ok_or_else(|| format!("Skill nicht gefunden: {}", r.name))?;
-        let dest = dest_base.join(&r.name);
-        copy_tree(&src, &dest, 0, &mut 0, &mut 0)?;
+        // Derive the dest dir name from the scanned skill's own directory, and
+        // reject anything that isn't a single safe path component (no traversal).
+        let dir_name = Path::new(&found.path)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .filter(|n| is_safe_component(n))
+            .ok_or_else(|| format!("Unsicherer Skill-Verzeichnisname: {}", found.path))?;
+        let dest = dest_base.join(&dir_name);
+        copy_tree(Path::new(&found.path), &dest, 0, &mut 0, &mut 0)?;
     }
     Ok(())
 }
 
-fn resolve_skill_src(r: &SkillRef, scanned: &[skills::Skill]) -> Option<PathBuf> {
-    if !r.path.is_empty() {
-        let p = PathBuf::from(&r.path);
-        if p.is_dir() {
-            return Some(p);
-        }
+/// True for symlinks and (on Windows) any reparse point — junctions and mount
+/// points have the reparse attribute but are NOT reported by `is_symlink()`.
+fn is_link_or_reparse(meta: &std::fs::Metadata) -> bool {
+    if meta.file_type().is_symlink() {
+        return true;
     }
-    // builtin templates carry no path: match by name (+ scope when it helps).
-    scanned
-        .iter()
-        .find(|s| s.name == r.name && s.scope == r.scope)
-        .or_else(|| scanned.iter().find(|s| s.name == r.name))
-        .map(|s| PathBuf::from(&s.path))
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+        return meta.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0;
+    }
+    #[cfg(not(windows))]
+    false
+}
+
+/// A single, safe path component — no separators, no `..`, not empty.
+fn is_safe_component(name: &str) -> bool {
+    !name.is_empty()
+        && name != ".."
+        && name != "."
+        && !name.contains('/')
+        && !name.contains('\\')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_safe_component;
+
+    #[test]
+    fn rejects_traversal_and_separators() {
+        assert!(is_safe_component("deep-research"));
+        assert!(is_safe_component("verify"));
+        assert!(!is_safe_component(".."));
+        assert!(!is_safe_component("."));
+        assert!(!is_safe_component(""));
+        assert!(!is_safe_component("../evil"));
+        assert!(!is_safe_component("a/b"));
+        assert!(!is_safe_component("a\\b"));
+        assert!(!is_safe_component("..\\..\\windows"));
+    }
 }
 
 /// Hardened recursive copy: rejects symlinks/junctions, caps depth/files/bytes.
@@ -150,16 +213,16 @@ fn copy_tree(
         return Err(format!("Skill zu tief verschachtelt: {}", src.display()));
     }
     let meta = fs::symlink_metadata(src).map_err(|e| format!("stat {}: {e}", src.display()))?;
-    if meta.file_type().is_symlink() {
-        return Err(format!("Symlink in Skill abgelehnt: {}", src.display()));
+    if is_link_or_reparse(&meta) {
+        return Err(format!("Symlink/Junction in Skill abgelehnt: {}", src.display()));
     }
     fs::create_dir_all(dest).map_err(|e| format!("mkdir {}: {e}", dest.display()))?;
     for entry in fs::read_dir(src).map_err(|e| format!("read {}: {e}", src.display()))? {
         let entry = entry.map_err(|e| e.to_string())?;
         let p = entry.path();
         let m = fs::symlink_metadata(&p).map_err(|e| e.to_string())?;
-        if m.file_type().is_symlink() {
-            return Err(format!("Symlink in Skill abgelehnt: {}", p.display()));
+        if is_link_or_reparse(&m) {
+            return Err(format!("Symlink/Junction in Skill abgelehnt: {}", p.display()));
         }
         let target = dest.join(entry.file_name());
         if m.is_dir() {
@@ -192,21 +255,33 @@ fn write_mcp_config(path: &Path, workdir: &Path, profile: &Loadout) -> Result<()
     fs::write(path, pretty).map_err(|e| format!("mcp.json: {e}"))
 }
 
-/// Write the platform launcher script into `runtime/`, returning its path.
+/// Write the platform launcher script into `runtime/`, returning its path. The
+/// script removes its own `run_dir` after the agent exits (best-effort — a
+/// force-killed terminal is swept later by `cleanup_old`).
 fn write_launcher(
     runtime: &Path,
     exe: &str,
     args: &[String],
     workdir: &str,
     keep_open: bool,
+    run_dir: &Path,
 ) -> Result<PathBuf, String> {
-    let (name, body) = if cfg!(windows) {
+    let run = run_dir.to_string_lossy();
+    let (name, mut body) = if cfg!(windows) {
         ("launcher.ps1", launcher::render_ps1(exe, args, workdir, keep_open))
     } else if cfg!(target_os = "macos") {
         ("launcher.command", launcher::render_posix(exe, args, workdir, keep_open))
     } else {
         ("launcher.sh", launcher::render_posix(exe, args, workdir, keep_open))
     };
+    if cfg!(windows) {
+        body.push_str(&format!(
+            "Remove-Item -Recurse -Force -LiteralPath {} -ErrorAction SilentlyContinue\n",
+            launcher::ps_quote(&run)
+        ));
+    } else {
+        body.push_str(&format!("rm -rf {}\n", launcher::posix_quote(&run)));
+    }
     let path = runtime.join(name);
     fs::write(&path, body).map_err(|e| format!("launcher: {e}"))?;
     make_executable(&path);
