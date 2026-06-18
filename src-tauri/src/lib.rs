@@ -66,7 +66,7 @@ fn launch_agent(
     let profile = profiles::list()
         .into_iter()
         .find(|p| p.id == id)
-        .ok_or_else(|| format!("Profil nicht gefunden: {id}"))?;
+        .ok_or_else(|| format!("Profile not found: {id}"))?;
     launch::run(&profile, workdir_override, confirmed)
 }
 

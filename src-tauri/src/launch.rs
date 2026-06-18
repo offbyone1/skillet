@@ -28,11 +28,11 @@ fn resolve_workdir(p: &Loadout, override_dir: Option<String>) -> Result<PathBuf,
         .filter(|s| !s.trim().is_empty())
         .unwrap_or_else(|| p.workdir.clone());
     if raw.trim().is_empty() {
-        return Err("Kein Arbeitsverzeichnis gesetzt.".into());
+        return Err("No working directory set.".into());
     }
     let dir = PathBuf::from(&raw);
     if !dir.is_dir() {
-        return Err(format!("Arbeitsverzeichnis existiert nicht: {raw}"));
+        return Err(format!("Working directory does not exist: {raw}"));
     }
     Ok(dir)
 }
@@ -44,13 +44,13 @@ pub fn preflight_scan(workdir: &str) -> Vec<String> {
     let dir = Path::new(workdir);
     let mut found = Vec::new();
     let probes: &[(&str, &str)] = &[
-        (".claude/settings.json", "Projekt-Settings"),
-        (".claude/settings.local.json", "Lokale Settings"),
+        (".claude/settings.json", "Project settings"),
+        (".claude/settings.local.json", "Local settings"),
         (".claude/hooks", "Hooks"),
         ("CLAUDE.md", "CLAUDE.md"),
         ("CLAUDE.local.md", "CLAUDE.local.md"),
-        (".mcp.json", "Projekt-MCP"),
-        (".claude/skills", "Projekt-Skills"),
+        (".mcp.json", "Project MCP"),
+        (".claude/skills", "Project skills"),
     ];
     for (rel, label) in probes {
         if dir.join(rel).exists() {
@@ -79,7 +79,7 @@ pub fn run(
         let trust = preflight_scan(&workdir_str);
         if !trust.is_empty() {
             return Err(format!(
-                "Vertrauen erforderlich: {} enthält {} — Start mit -p/skip-perms abgelehnt ohne Bestätigung.",
+                "Trust required: {} contains {} — launch with -p/skip-perms refused without confirmation.",
                 workdir_str,
                 trust.join(", ")
             ));
@@ -112,7 +112,7 @@ pub fn run(
 
     let script = write_launcher(&runtime, &exe, &args, &workdir_str, keep_open, &run_dir)?;
     spawn_terminal(&script, &workdir)?;
-    Ok(format!("{} gestartet in {}", profile.agent, workdir_str))
+    Ok(format!("{} launched in {}", profile.agent, workdir_str))
 }
 
 /// `<~/.skillet>/launch/<run-id>` — unique per launch (time + pid).
@@ -144,14 +144,14 @@ fn project_skills_into(skills_root: &Path, refs: &[SkillRef]) -> Result<(), Stri
             .find(|s| !r.path.is_empty() && s.path == r.path)
             .or_else(|| scanned.iter().find(|s| s.name == r.name && s.scope == r.scope))
             .or_else(|| scanned.iter().find(|s| s.name == r.name))
-            .ok_or_else(|| format!("Skill nicht gefunden: {}", r.name))?;
+            .ok_or_else(|| format!("Skill not found: {}", r.name))?;
         // Derive the dest dir name from the scanned skill's own directory, and
         // reject anything that isn't a single safe path component (no traversal).
         let dir_name = Path::new(&found.path)
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .filter(|n| is_safe_component(n))
-            .ok_or_else(|| format!("Unsicherer Skill-Verzeichnisname: {}", found.path))?;
+            .ok_or_else(|| format!("Unsafe skill directory name: {}", found.path))?;
         let dest = dest_base.join(&dir_name);
         copy_tree(Path::new(&found.path), &dest, 0, &mut 0, &mut 0)?;
     }
@@ -210,11 +210,11 @@ fn copy_tree(
     bytes: &mut u64,
 ) -> Result<(), String> {
     if depth > MAX_DEPTH {
-        return Err(format!("Skill zu tief verschachtelt: {}", src.display()));
+        return Err(format!("Skill nested too deep: {}", src.display()));
     }
     let meta = fs::symlink_metadata(src).map_err(|e| format!("stat {}: {e}", src.display()))?;
     if is_link_or_reparse(&meta) {
-        return Err(format!("Symlink/Junction in Skill abgelehnt: {}", src.display()));
+        return Err(format!("Symlink/junction in skill rejected: {}", src.display()));
     }
     fs::create_dir_all(dest).map_err(|e| format!("mkdir {}: {e}", dest.display()))?;
     for entry in fs::read_dir(src).map_err(|e| format!("read {}: {e}", src.display()))? {
@@ -222,7 +222,7 @@ fn copy_tree(
         let p = entry.path();
         let m = fs::symlink_metadata(&p).map_err(|e| e.to_string())?;
         if is_link_or_reparse(&m) {
-            return Err(format!("Symlink/Junction in Skill abgelehnt: {}", p.display()));
+            return Err(format!("Symlink/junction in skill rejected: {}", p.display()));
         }
         let target = dest.join(entry.file_name());
         if m.is_dir() {
@@ -231,7 +231,7 @@ fn copy_tree(
             *files += 1;
             *bytes += m.len();
             if *files > MAX_FILES || *bytes > MAX_BYTES {
-                return Err(format!("Skill überschreitet Limits: {}", src.display()));
+                return Err(format!("Skill exceeds limits: {}", src.display()));
             }
             fs::copy(&p, &target).map_err(|e| format!("copy {}: {e}", p.display()))?;
         }
@@ -246,7 +246,7 @@ fn write_mcp_config(path: &Path, workdir: &Path, profile: &Loadout) -> Result<()
     let (servers, unresolved) = mcp::resolve_specs(workdir, &profile.mcps);
     if !unresolved.is_empty() {
         return Err(format!(
-            "MCP-Server nicht isolierbar: {}",
+            "MCP servers not isolatable: {}",
             unresolved.join(", ")
         ));
     }
@@ -309,7 +309,7 @@ fn spawn_terminal(script: &Path, workdir: &Path) -> Result<(), String> {
             .current_dir(workdir)
             .creation_flags(CREATE_NEW_CONSOLE)
             .spawn()
-            .map_err(|e| format!("Terminal-Start fehlgeschlagen: {e}"))?;
+            .map_err(|e| format!("Failed to start terminal: {e}"))?;
         return Ok(());
     }
 
@@ -319,7 +319,7 @@ fn spawn_terminal(script: &Path, workdir: &Path) -> Result<(), String> {
         Command::new("open")
             .args(["-a", "Terminal", &s])
             .spawn()
-            .map_err(|e| format!("Terminal-Start fehlgeschlagen: {e}"))?;
+            .map_err(|e| format!("Failed to start terminal: {e}"))?;
         return Ok(());
     }
 
@@ -341,7 +341,7 @@ fn spawn_terminal(script: &Path, workdir: &Path) -> Result<(), String> {
                 return Ok(());
             }
         }
-        Err("Kein Terminal-Emulator gefunden.".into())
+        Err("No terminal emulator found.".into())
     }
 }
 

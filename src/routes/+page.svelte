@@ -97,7 +97,7 @@
     openSkill = s;
   }
   const skillQualityLabel = (q: string) =>
-    q === "good" ? "Gute Beschreibung" : q === "warn" ? "Schwache Beschreibung" : "Dürftige Beschreibung";
+    q === "good" ? "Good description" : q === "warn" ? "Weak description" : "Poor description";
   function toggleSkill(s: Skill) {
     // M0 is read-only on disk; this is an optimistic preview of M2 enable/disable.
     s.enabled = !s.enabled;
@@ -202,16 +202,16 @@
   async function saveEdit() {
     if (!editing) return;
     if (!editing.name.trim()) {
-      toast = "Name fehlt.";
+      toast = "Name is missing.";
       return;
     }
     try {
       await saveProfile($state.snapshot(editing) as Loadout);
       editing = null;
       await loadProfiles();
-      toast = "Gespeichert.";
+      toast = "Saved.";
     } catch (e) {
-      toast = `Speichern fehlgeschlagen: ${e}`;
+      toast = `Save failed: ${e}`;
     }
   }
 
@@ -219,9 +219,9 @@
     try {
       await deleteProfile(p.id);
       await loadProfiles();
-      toast = `„${p.name}" gelöscht.`;
+      toast = `"${p.name}" deleted.`;
     } catch (e) {
-      toast = `Löschen fehlgeschlagen: ${e}`;
+      toast = `Delete failed: ${e}`;
     }
   }
 
@@ -258,7 +258,7 @@
   async function confirmLaunch() {
     if (!launching) return;
     if (launchRisky && !trustConfirmed) {
-      launchErr = "Bitte Vertrauen bestätigen.";
+      launchErr = "Please confirm trust.";
       return;
     }
     launchBusy = true;
@@ -334,7 +334,7 @@
     </div>
 
     <nav class="nav">
-      <div class="nav-label">Verwalten</div>
+      <div class="nav-label">Manage</div>
       <button class="nav-item {view === 'skills' ? 'active' : ''}" onclick={() => (view = "skills")}>
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10" /></svg>
         Skills <span class="badge-count">{skills.length}</span>
@@ -345,7 +345,7 @@
       </button>
       <button class="nav-item {view === 'starter' ? 'active' : ''}" onclick={() => (view = "starter")}>
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z" /></svg>
-        Agent-Starter
+        Agent Starter
       </button>
     </nav>
 
@@ -358,7 +358,7 @@
       </button>
       <button class="nav-item secondary" onclick={openSettings}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 13.5a7.8 7.8 0 0 0 0-3l1.8-1.4-2-3.4-2.1.9a7.6 7.6 0 0 0-2.6-1.5L13.9 2h-3.8l-.6 2.1a7.6 7.6 0 0 0-2.6 1.5l-2.1-.9-2 3.4 1.8 1.4a7.8 7.8 0 0 0 0 3L2.8 15l2 3.4 2.1-.9a7.6 7.6 0 0 0 2.6 1.5l.6 2.1h3.8l.6-2.1a7.6 7.6 0 0 0 2.6-1.5l2.1.9 2-3.4z" /></svg>
-        Einstellungen
+        Settings
       </button>
     </div>
     <div class="sidebar-foot">
@@ -373,22 +373,22 @@
       <section class="view">
         <div class="page-head">
           <h2>Skills</h2>
-          <p>Alle erkannten Claude-Code-Skills. Aktivieren oder deaktivieren pro Eintrag. Plugin-Skills sind gesperrt.</p>
+          <p>All detected Claude Code skills. Enable or disable per entry. Plugin skills are locked.</p>
         </div>
         <div class="control-row">
           <div class="search-wrap">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" /></svg>
-            <input class="search" type="text" placeholder="Skills durchsuchen — Name oder Beschreibung" bind:value={search} />
+            <input class="search" type="text" placeholder="Search skills — name or description" bind:value={search} />
           </div>
-          <div class="legend" title="Farbpunkt links am Skill = Qualität seiner Beschreibung">
-            <span class="legend-label">Beschreibung</span>
-            <span><span class="dot good"></span>gut</span>
-            <span><span class="dot warn"></span>schwach</span>
-            <span><span class="dot bad"></span>dürftig</span>
+          <div class="legend" title="Color dot left of a skill = quality of its description">
+            <span class="legend-label">Description</span>
+            <span><span class="dot good"></span>good</span>
+            <span><span class="dot warn"></span>weak</span>
+            <span><span class="dot bad"></span>poor</span>
           </div>
-          <div class="seg" role="group" aria-label="Dichte">
-            <button class="seg-btn {density === 'cards' ? 'active' : ''}" onclick={() => (density = "cards")}>Karten</button>
-            <button class="seg-btn {density === 'list' ? 'active' : ''}" onclick={() => (density = "list")}>Liste</button>
+          <div class="seg" role="group" aria-label="Density">
+            <button class="seg-btn {density === 'cards' ? 'active' : ''}" onclick={() => (density = "cards")}>Cards</button>
+            <button class="seg-btn {density === 'list' ? 'active' : ''}" onclick={() => (density = "list")}>List</button>
           </div>
         </div>
 
@@ -400,7 +400,7 @@
             tabindex="0"
             onclick={(e) => openDeck(g.plugin, e)}
             onkeydown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), openDeck(g.plugin, e))}
-            aria-label="{g.plugin} — {g.skills.length} Skills öffnen"
+            aria-label="{g.plugin} — open {g.skills.length} skills"
           >
             <span class="card-top">
               <span class="card-name-row">
@@ -412,26 +412,26 @@
             <span class="deck-desc">{g.skills.length} Skills · {g.skills.slice(0, 3).map((s) => s.name).join(", ")}{g.skills.length > 3 ? " …" : ""}</span>
             <span class="hair"></span>
             <span class="card-bottom">
-              <span class="deck-open">Öffnen ›</span>
+              <span class="deck-open">Open ›</span>
               <span class="toggle-wrap">
                 <button
                   type="button"
                   class="toggle {pluginOn(g) ? 'on' : ''}"
                   role="switch"
                   aria-checked={pluginOn(g)}
-                  aria-label="Plugin {g.plugin} {pluginOn(g) ? 'deaktivieren' : 'aktivieren'}"
+                  aria-label="Plugin {g.plugin} {pluginOn(g) ? 'disable' : 'enable'}"
                   onclick={(e) => togglePlugin(g, e)}
                 >
                   <span class="knob"></span>
                 </button>
-                <span class="toggle-lbl">{pluginOn(g) ? "Aktiv" : "Aus"}</span>
+                <span class="toggle-lbl">{pluginOn(g) ? "Active" : "Off"}</span>
               </span>
             </span>
           </div>
         {/snippet}
 
         {#if favLoose.length}
-          <div class="group-head"><h3>Favoriten</h3><span class="cnt">{favLoose.length}</span><div class="rule"></div></div>
+          <div class="group-head"><h3>Favorites</h3><span class="cnt">{favLoose.length}</span><div class="rule"></div></div>
           <div class="grid {density}">
             {#each favLoose as s, i (s.path)}
               <SkillCard skill={s} index={i} ontoggle={toggleSkill} onfav={toggleFav} onopen={openSkillCard} favorite {density} />
@@ -440,11 +440,11 @@
           <div class="sec-divider"></div>
         {/if}
 
-        <div class="group-head"><h3>Aktiv</h3><span class="cnt">{onSkills.length} {onSkills.length === 1 ? "Skill" : "Skills"}</span><div class="rule"></div></div>
+        <div class="group-head"><h3>Active</h3><span class="cnt">{onSkills.length} {onSkills.length === 1 ? "Skill" : "Skills"}</span><div class="rule"></div></div>
         {#if loading}
-          <div class="grid"><div class="empty">Scanne Skills …</div></div>
+          <div class="grid"><div class="empty">Scanning skills …</div></div>
         {:else if errored}
-          <div class="grid"><div class="empty">Scan fehlgeschlagen — läuft die App über `tauri dev`?</div></div>
+          <div class="grid"><div class="empty">Scan failed — is the app running via `tauri dev`?</div></div>
         {:else if onSkills.length}
           {#if onGroups.length}
             <div class="deck-grid {density}">
@@ -462,10 +462,10 @@
             </div>
           {/if}
         {:else}
-          <div class="grid"><div class="empty">Keine aktiven Skills gefunden.</div></div>
+          <div class="grid"><div class="empty">No active skills found.</div></div>
         {/if}
 
-        <div class="group-head"><h3>Deaktiviert</h3><span class="cnt">{offSkills.length} {offSkills.length === 1 ? "Skill" : "Skills"}</span><div class="rule"></div></div>
+        <div class="group-head"><h3>Disabled</h3><span class="cnt">{offSkills.length} {offSkills.length === 1 ? "Skill" : "Skills"}</span><div class="rule"></div></div>
         {#if offSkills.length}
           {#if offGroups.length}
             <div class="deck-grid {density}">
@@ -483,7 +483,7 @@
             </div>
           {/if}
         {:else}
-          <div class="grid"><div class="empty">Nichts deaktiviert.</div></div>
+          <div class="grid"><div class="empty">Nothing disabled.</div></div>
         {/if}
       </section>
     {/if}
@@ -492,17 +492,17 @@
       <section class="view">
         <div class="page-head">
           <h2>MCP Server</h2>
-          <p>Registrierte Model-Context-Protocol-Server. <b>plugin:*</b> und <b>claude.ai</b>-Server sind verwaltet und nur lesbar.</p>
+          <p>Registered Model Context Protocol servers. <b>plugin:*</b> and <b>claude.ai</b> servers are managed and read-only.</p>
         </div>
         <div class="mcp-grid">
           {#if mcpLoading}
-            <div class="empty">Lese `claude mcp list` …</div>
+            <div class="empty">Reading `claude mcp list` …</div>
           {:else if mcp.length}
             {#each mcp as m, i (m.name)}
               <McpCard server={m} index={i} />
             {/each}
           {:else}
-            <div class="empty">Keine MCP-Server gefunden.</div>
+            <div class="empty">No MCP servers found.</div>
           {/if}
         </div>
       </section>
@@ -511,8 +511,8 @@
     {#if view === "starter"}
       <section class="view">
         <div class="page-head">
-          <h2>Agent-Starter</h2>
-          <p>Loadout-Profile starten <b>claude</b> oder <b>codex</b> im gewählten Verzeichnis mit genau diesen Skills + MCPs. Isoliert pro Start — deine globale Config bleibt unberührt.</p>
+          <h2>Agent Starter</h2>
+          <p>Loadout profiles launch <b>claude</b> or <b>codex</b> in the chosen directory with exactly these skills + MCPs. Isolated per launch — your global config stays untouched.</p>
         </div>
 
         {#snippet profileCard(p: Loadout, i: number)}
@@ -532,12 +532,12 @@
               {#if p.builtin}<span class="chip mcp">Template</span>{/if}
             </div>
             <div class="pc-actions">
-              <button class="btn btn-accent" onclick={() => openLaunch(p)}>Starten</button>
+              <button class="btn btn-accent" onclick={() => openLaunch(p)}>Launch</button>
               {#if p.builtin}
-                <button class="btn" onclick={() => openEdit(p)}>Duplizieren</button>
+                <button class="btn" onclick={() => openEdit(p)}>Duplicate</button>
               {:else}
-                <button class="btn" onclick={() => openEdit(p)}>Bearbeiten</button>
-                <button class="btn btn-sm" aria-label="Löschen" onclick={() => removeProfile(p)}>
+                <button class="btn" onclick={() => openEdit(p)}>Edit</button>
+                <button class="btn btn-sm" aria-label="Delete" onclick={() => removeProfile(p)}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>
                 </button>
               {/if}
@@ -546,7 +546,7 @@
         {/snippet}
 
         {#if profilesLoading}
-          <div class="empty">Lade Profile …</div>
+          <div class="empty">Loading profiles …</div>
         {:else}
           <div class="group-head"><h3>Templates</h3><span class="cnt">{builtins.length}</span><div class="rule"></div></div>
           <div class="profile-grid">
@@ -555,14 +555,14 @@
             {/each}
           </div>
 
-          <div class="group-head"><h3>Meine Loadouts</h3><span class="cnt">{myLoadouts.length}</span><div class="rule"></div></div>
+          <div class="group-head"><h3>My Loadouts</h3><span class="cnt">{myLoadouts.length}</span><div class="rule"></div></div>
           <div class="profile-grid">
             {#each myLoadouts as p, i (p.id)}
               {@render profileCard(p, i)}
             {/each}
             <button class="profile-card new" onclick={() => openEdit(null)}>
               <span class="plus">+</span>
-              <span class="nt">Neues Loadout</span>
+              <span class="nt">New Loadout</span>
             </button>
           </div>
         {/if}
@@ -573,12 +573,12 @@
       <section class="view">
         <div class="page-head">
           <h2>Health</h2>
-          <p>Erkannte Befunde aus dem letzten Scan.</p>
+          <p>Detected findings from the last scan.</p>
         </div>
-        <div class="group-head"><h3>Befunde</h3><span class="cnt">{findings.length} offen</span><div class="rule"></div></div>
+        <div class="group-head"><h3>Findings</h3><span class="cnt">{findings.length} open</span><div class="rule"></div></div>
         <div class="findings">
           {#if mcpLoading}
-            <div class="empty">Analysiere …</div>
+            <div class="empty">Analyzing …</div>
           {:else if findings.length}
             {#each findings as fd, i (fd.title)}
               <div class="finding {fd.severity} stagger" style="animation-delay:{i * 40}ms">
@@ -590,7 +590,7 @@
               </div>
             {/each}
           {:else}
-            <div class="empty">Keine Befunde — alles sauber.</div>
+            <div class="empty">No findings — all clean.</div>
           {/if}
         </div>
       </section>
@@ -621,14 +621,14 @@
               class="toggle {pluginOn(openGroup) ? 'on' : ''}"
               role="switch"
               aria-checked={pluginOn(openGroup)}
-              aria-label="Plugin {openGroup.plugin} {pluginOn(openGroup) ? 'deaktivieren' : 'aktivieren'}"
+              aria-label="Plugin {openGroup.plugin} {pluginOn(openGroup) ? 'disable' : 'enable'}"
               onclick={() => togglePlugin(openGroup)}
             >
               <span class="knob"></span>
             </button>
-            <span class="toggle-lbl">{pluginOn(openGroup) ? "Aktiv" : "Aus"}</span>
+            <span class="toggle-lbl">{pluginOn(openGroup) ? "Active" : "Off"}</span>
           </span>
-          <button class="pop-close" aria-label="Schließen" onclick={() => (openPlugin = null)}>
+          <button class="pop-close" aria-label="Close" onclick={() => (openPlugin = null)}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
           </button>
         </div>
@@ -652,26 +652,26 @@
           <h3>{openSkill.name}</h3>
           <span class="scope-badge scope-{openSkill.scope}">{openSkill.plugin ?? openSkill.scope}</span>
         </div>
-        <button class="pop-close" aria-label="Schließen" onclick={() => (openSkill = null)}>
+        <button class="pop-close" aria-label="Close" onclick={() => (openSkill = null)}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
         </button>
       </div>
       <div class="pop-skill-body">
-        <p class="pop-desc">{openSkill.description || "— keine Beschreibung —"}</p>
+        <p class="pop-desc">{openSkill.description || "— no description —"}</p>
         <div class="pop-stats">
-          <div class="stat"><div class="v">{openSkill.size_human}</div><div class="k">Größe</div></div>
-          <div class="stat"><div class="v">{openSkill.file_count}</div><div class="k">Dateien</div></div>
-          <div class="stat"><div class="v">{openSkill.modified}</div><div class="k">Geändert</div></div>
+          <div class="stat"><div class="v">{openSkill.size_human}</div><div class="k">Size</div></div>
+          <div class="stat"><div class="v">{openSkill.file_count}</div><div class="k">Files</div></div>
+          <div class="stat"><div class="v">{openSkill.modified}</div><div class="k">Modified</div></div>
           <div class="stat"><div class="v">{skillQualityLabel(openSkill.desc_quality).split(" ")[0]}</div><div class="k">Desc</div></div>
         </div>
         {#if openSkill.allowed_tools}
           <div class="pop-field">
-            <div class="pop-field-k">Erlaubte Tools</div>
+            <div class="pop-field-k">Allowed tools</div>
             <div class="pop-field-v">{openSkill.allowed_tools}</div>
           </div>
         {/if}
         <div class="pop-field">
-          <div class="pop-field-k">Pfad</div>
+          <div class="pop-field-k">Path</div>
           <div class="pop-field-v mono">{openSkill.path}</div>
         </div>
       </div>
@@ -685,16 +685,16 @@
     <div class="modal wide" role="dialog" aria-modal="true" tabindex="-1">
       <div class="modal-head">
         <div>
-          <h3>{editIsNew ? "Neues Loadout" : "Loadout bearbeiten"}</h3>
-          <div class="sub">Startet <b>{editing.agent}</b> mit exakt diesem Set.</div>
+          <h3>{editIsNew ? "New Loadout" : "Edit Loadout"}</h3>
+          <div class="sub">Launches <b>{editing.agent}</b> with exactly this set.</div>
         </div>
-        <button class="modal-close" aria-label="Schließen" onclick={() => (editing = null)}>
+        <button class="modal-close" aria-label="Close" onclick={() => (editing = null)}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
         </button>
       </div>
       <div class="modal-body">
         <div class="form-row">
-          <div class="ff grow"><label>Name</label><input bind:value={editing.name} placeholder="z.B. Research" /></div>
+          <div class="ff grow"><label>Name</label><input bind:value={editing.name} placeholder="e.g. Research" /></div>
           <div class="ff"><label>Agent</label>
             <select bind:value={editing.agent}>
               <option value="claude">claude</option>
@@ -702,11 +702,11 @@
             </select>
           </div>
         </div>
-        <div class="name-field"><label>Notiz</label><input bind:value={editing.note} placeholder="kurz, optional" /></div>
+        <div class="name-field"><label>Note</label><input bind:value={editing.note} placeholder="short, optional" /></div>
 
         <div class="form-row">
           <div class="ff grow"><label>Model</label>
-            <input bind:value={editing.model} placeholder={editing.agent === "codex" ? "z.B. gpt-5.5" : "opus / sonnet / haiku / fable"} />
+            <input bind:value={editing.model} placeholder={editing.agent === "codex" ? "e.g. gpt-5.5" : "opus / sonnet / haiku / fable"} />
           </div>
           <div class="ff"><label>Effort {editing.agent !== "claude" ? "(claude)" : ""}</label>
             <select bind:value={editing.effort} disabled={editing.agent !== "claude"}>
@@ -720,15 +720,15 @@
           </div>
         </div>
 
-        <div class="name-field"><label>Arbeitsverzeichnis (Default — beim Start überschreibbar)</label>
+        <div class="name-field"><label>Working directory (default — overridable at launch)</label>
           <div class="wd-row">
-            <input bind:value={editing.workdir} placeholder="C:\\Users\\…\\projekt" />
-            <button class="btn" onclick={chooseEditWorkdir}>Wählen…</button>
+            <input bind:value={editing.workdir} placeholder="C:\\Users\\…\\project" />
+            <button class="btn" onclick={chooseEditWorkdir}>Choose…</button>
           </div>
         </div>
 
-        <div class="name-field"><label>Prompt (leer = interaktiv · gesetzt = headless <code>-p</code>)</label>
-          <textarea class="ta" bind:value={editing.prompt} rows="2" placeholder="optionaler Start-Prompt"></textarea>
+        <div class="name-field"><label>Prompt (empty = interactive · set = headless <code>-p</code>)</label>
+          <textarea class="ta" bind:value={editing.prompt} rows="2" placeholder="optional start prompt"></textarea>
         </div>
 
         <div class="toggle-row">
@@ -746,7 +746,7 @@
               <h4>Skills <span class="pc-n">{editing.skills.length}</span></h4>
               <div class="picker-list">
                 {#if loading}
-                  <div class="pick-empty">Scanne …</div>
+                  <div class="pick-empty">Scanning …</div>
                 {:else}
                   {#each skills as s (s.path)}
                     <div class="pick-row {skillSelected(s) ? 'checked' : ''}" role="button" tabindex="0"
@@ -764,7 +764,7 @@
               <h4>MCPs <span class="pc-n">{editing.mcps.length}</span></h4>
               <div class="picker-list">
                 {#if mcpLoading}
-                  <div class="pick-empty">Lese MCP-Server …</div>
+                  <div class="pick-empty">Reading MCP servers …</div>
                 {:else if isolatableMcp.length}
                   {#each isolatableMcp as m (m.name)}
                     <div class="pick-row {mcpSelected(m) ? 'checked' : ''}" role="button" tabindex="0"
@@ -776,23 +776,23 @@
                     </div>
                   {/each}
                 {:else}
-                  <div class="pick-empty">Keine isolierbaren Server.</div>
+                  <div class="pick-empty">No isolatable servers.</div>
                 {/if}
               </div>
-              <p class="hint">Plugin-/managed-Server (<code>plugin:*</code>, <code>claude.ai</code>) sind nicht isolierbar und ausgeblendet.</p>
+              <p class="hint">Plugin/managed servers (<code>plugin:*</code>, <code>claude.ai</code>) are not isolatable and are hidden.</p>
             </div>
           </div>
         {:else}
           <div class="callout">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></svg>
-            <p>Skill- und MCP-Isolation gelten nur für <b>claude</b>. Codex nutzt sein eigenes Plugin-/MCP-System — hier zählen nur Verzeichnis, Model, Prompt und skip-perms.</p>
+            <p>Skill and MCP isolation apply to <b>claude</b> only. Codex uses its own plugin/MCP system — here only directory, model, prompt and skip-perms matter.</p>
           </div>
         {/if}
       </div>
       <div class="modal-foot">
         <span class="spacer"></span>
-        <button class="btn" onclick={() => (editing = null)}>Abbrechen</button>
-        <button class="btn btn-accent" onclick={saveEdit}>Speichern</button>
+        <button class="btn" onclick={() => (editing = null)}>Cancel</button>
+        <button class="btn btn-accent" onclick={saveEdit}>Save</button>
       </div>
     </div>
   </div>
@@ -804,38 +804,38 @@
     <div class="modal" role="dialog" aria-modal="true" tabindex="-1" style="max-width:540px">
       <div class="modal-head">
         <div>
-          <h3>Starten: {launching.name}</h3>
-          <div class="sub">{launching.agent}{launching.prompt?.trim() ? " · headless" : " · interaktiv"}</div>
+          <h3>Launch: {launching.name}</h3>
+          <div class="sub">{launching.agent}{launching.prompt?.trim() ? " · headless" : " · interactive"}</div>
         </div>
-        <button class="modal-close" aria-label="Schließen" onclick={() => (launching = null)}>
+        <button class="modal-close" aria-label="Close" onclick={() => (launching = null)}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
         </button>
       </div>
       <div class="modal-body">
-        <div class="name-field"><label>Arbeitsverzeichnis</label>
+        <div class="name-field"><label>Working directory</label>
           <div class="wd-row">
-            <input bind:value={launchWorkdir} placeholder="Verzeichnis wählen…" onchange={() => refreshTrust(launchWorkdir)} />
-            <button class="btn" onclick={chooseLaunchWorkdir}>Wählen…</button>
+            <input bind:value={launchWorkdir} placeholder="Choose a directory…" onchange={() => refreshTrust(launchWorkdir)} />
+            <button class="btn" onclick={chooseLaunchWorkdir}>Choose…</button>
           </div>
         </div>
         {#if launchTrust.length}
           <div class="callout">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" /></svg>
-            <p><b>Projekt-Config im Verzeichnis:</b> {launchTrust.join(", ")}. Diese werden geladen und vom Agent ausgeführt/beachtet.</p>
+            <p><b>Project config in this directory:</b> {launchTrust.join(", ")}. These are loaded and executed/honored by the agent.</p>
           </div>
         {/if}
         {#if launchRisky}
           <label class="trust-confirm">
             <input type="checkbox" bind:checked={trustConfirmed} />
-            Ich vertraue diesem Verzeichnis — Start mit {launching.skipPerms ? "skip-permissions" : ""}{launching.skipPerms && launching.prompt?.trim() ? " + " : ""}{launching.prompt?.trim() ? "headless" : ""}.
+            I trust this directory — launch with {launching.skipPerms ? "skip-permissions" : ""}{launching.skipPerms && launching.prompt?.trim() ? " + " : ""}{launching.prompt?.trim() ? "headless" : ""}.
           </label>
         {/if}
         {#if launchErr}<div class="launch-err">{launchErr}</div>{/if}
       </div>
       <div class="modal-foot">
         <span class="spacer"></span>
-        <button class="btn" onclick={() => (launching = null)}>Abbrechen</button>
-        <button class="btn btn-accent" disabled={launchBusy} onclick={confirmLaunch}>{launchBusy ? "Starte…" : "Starten"}</button>
+        <button class="btn" onclick={() => (launching = null)}>Cancel</button>
+        <button class="btn btn-accent" disabled={launchBusy} onclick={confirmLaunch}>{launchBusy ? "Launching…" : "Launch"}</button>
       </div>
     </div>
   </div>
@@ -844,7 +844,7 @@
 {#if toast}
   <div class="toast" role="status">
     <span>{toast}</span>
-    <button aria-label="Schließen" onclick={() => (toast = "")}>
+    <button aria-label="Close" onclick={() => (toast = "")}>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
     </button>
   </div>

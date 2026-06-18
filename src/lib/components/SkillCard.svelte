@@ -22,10 +22,10 @@
   const locked = $derived(skill.scope === "plugin");
   const qTxt = $derived(
     skill.desc_quality === "good"
-      ? "Gute Beschreibung"
+      ? "Good description"
       : skill.desc_quality === "warn"
-        ? "Schwache Beschreibung"
-        : "Dürftige Beschreibung",
+        ? "Weak description"
+        : "Poor description",
   );
 
   function toggle() {
@@ -59,7 +59,7 @@
       <button
         type="button"
         class="fav {favorite ? 'on' : ''}"
-        aria-label={favorite ? "Favorit entfernen" : "Als Favorit markieren"}
+        aria-label={favorite ? "Remove favorite" : "Mark as favorite"}
         aria-pressed={favorite}
         onclick={(e) => {
           e.stopPropagation();
@@ -73,15 +73,15 @@
     {/if}
   </div>
 
-  <p class="card-desc">{skill.description || "— keine Beschreibung —"}</p>
+  <p class="card-desc">{skill.description || "— no description —"}</p>
 
   <div class="hair"></div>
 
   <div class="card-bottom">
     <div class="stats">
-      <div class="stat"><div class="v">{skill.size_human}</div><div class="k">Größe</div></div>
-      <div class="stat"><div class="v">{skill.file_count}</div><div class="k">Dateien</div></div>
-      <div class="stat"><div class="v">{skill.modified}</div><div class="k">Geändert</div></div>
+      <div class="stat"><div class="v">{skill.size_human}</div><div class="k">Size</div></div>
+      <div class="stat"><div class="v">{skill.file_count}</div><div class="k">Files</div></div>
+      <div class="stat"><div class="v">{skill.modified}</div><div class="k">Modified</div></div>
     </div>
     <div class="toggle-wrap">
       <button
@@ -89,7 +89,7 @@
         class="toggle {locked ? 'locked' : skill.enabled ? 'on' : ''}"
         role="switch"
         aria-checked={skill.enabled}
-        aria-label="{skill.name} {skill.enabled ? 'deaktivieren' : 'aktivieren'}"
+        aria-label="{skill.name} {skill.enabled ? 'disable' : 'enable'}"
         disabled={locked}
         onclick={(e) => {
           e.stopPropagation();
@@ -98,7 +98,7 @@
       >
         <div class="knob"></div>
       </button>
-      <span class="toggle-lbl">{locked ? "Gesperrt" : skill.enabled ? "Aktiv" : "Aus"}</span>
+      <span class="toggle-lbl">{locked ? "Locked" : skill.enabled ? "Active" : "Off"}</span>
     </div>
   </div>
 </div>

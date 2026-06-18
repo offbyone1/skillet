@@ -16,16 +16,16 @@
   );
   const statusLabel = $derived(
     server.status === "connected"
-      ? "verbunden"
+      ? "connected"
       : server.status === "needs-auth"
-        ? "Auth erforderlich"
+        ? "auth required"
         : server.status === "pending"
-          ? "ausstehend"
+          ? "pending"
           : server.status === "error"
-            ? "Fehler"
+            ? "error"
             : server.status === "stashed"
               ? "stashed"
-              : "unbekannt",
+              : "unknown",
   );
   const scopeCls = $derived(
     server.scope === "plugin" || server.scope === "managed"
@@ -69,13 +69,13 @@
         </svg>
         Managed · read-only
       </span>
-      <button class="btn btn-sm inert">Entfernen</button>
+      <button class="btn btn-sm inert">Remove</button>
     {:else if stashed}
       <span class="lock-note">stashed</span>
-      <button class="btn btn-sm btn-restore" disabled title="geplant für M2">Wiederherstellen</button>
+      <button class="btn btn-sm btn-restore" disabled title="planned for M2">Restore</button>
     {:else}
       <span class="status-line"><span class="dot {dotCls}"></span>{statusLabel}</span>
-      <button class="btn btn-sm btn-danger" disabled title="geplant für M2">Entfernen</button>
+      <button class="btn btn-sm btn-danger" disabled title="planned for M2">Remove</button>
     {/if}
   </div>
 </article>

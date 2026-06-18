@@ -151,7 +151,7 @@ pub fn builtin_templates() -> Vec<Loadout> {
         Loadout {
             id: "tmpl-research".into(),
             name: "Research".into(),
-            note: "Tiefenrecherche mit Second-Opinion.".into(),
+            note: "Deep research with a second opinion.".into(),
             agent: "claude".into(),
             workdir: String::new(),
             skills: vec![
@@ -168,7 +168,7 @@ pub fn builtin_templates() -> Vec<Loadout> {
         Loadout {
             id: "tmpl-frontend".into(),
             name: "Frontend".into(),
-            note: "UI bauen mit Design-Taste + Browser-Check.".into(),
+            note: "Build UI with design taste + browser check.".into(),
             agent: "claude".into(),
             workdir: String::new(),
             skills: vec![
@@ -185,7 +185,7 @@ pub fn builtin_templates() -> Vec<Loadout> {
         Loadout {
             id: "tmpl-debug".into(),
             name: "Debug".into(),
-            note: "Systematisches Debugging.".into(),
+            note: "Systematic debugging.".into(),
             agent: "claude".into(),
             workdir: String::new(),
             skills: vec![
