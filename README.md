@@ -1,57 +1,53 @@
 # Skillet
 
-A desktop atelier for your **Claude Code** setup — see every skill and MCP
-server you have installed, judged at a glance.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Windows](https://img.shields.io/badge/platform-Windows-blue.svg)
+![Tauri v2](https://img.shields.io/badge/Tauri-v2-orange.svg)
 
-![MIT License](https://img.shields.io/badge/license-MIT-blue)
-![Windows](https://img.shields.io/badge/platform-Windows-blue)
-![Tauri v2](https://img.shields.io/badge/Tauri-v2-orange)
+<p align="center">
+  <strong>Your tools say a skill is installed.<br>Skillet shows you what you actually have — and which skills will never fire.</strong>
+</p>
 
-## What it does
+Skillet is a local desktop atelier for your **Claude Code** setup. It reads the
+skills and MCP servers the CLI already keeps under `~/.claude` and lays them out
+in one calm, dark-gold window — personal, project and plugin skills in a single
+inventory, each plugin folded into a card stack, with a quick
+description-quality check so the skills that will never trigger stand out.
 
-Skillet scans the skills and MCP servers that the **Claude Code** CLI keeps on
-your machine and lays them out in one calm, dark-gold window. Personal,
-project, and plugin skills land in a single inventory; each plugin folds into a
-neat card stack you can pop open; and a quick description-quality check tells
-you which skills will actually trigger. That's the whole product — no account
-login, no telemetry, nothing to paste.
+<p align="center">
+  <img src="docs/assets/skillet.png" alt="Skillet — the Skills view with plugin card-stacks, description-quality dots and per-skill cards" width="100%">
+</p>
 
 This is the **M0** milestone: Skillet reads from disk, it does not write. The
-enable/disable and favourite toggles are an interactive preview of what the
-upcoming write mode will do.
+enable/disable and favourite toggles are an interactive preview of the upcoming
+write mode.
 
 ## Features
 
-- One inventory of every skill — **personal**, **project**, and **plugin**
+- One inventory of every skill — **personal**, **project** and **plugin**
 - Plugin skills collapse into a **card stack**; click to pop out the sub-skills
 - **Description-quality** dots (good / weak / poor) so dead skills stand out
 - **Favourites** — star a skill to pin it above the rest
-- **MCP servers** view — transport, scope, and live connection status
-- **Health** view — surfaces conflicts, drift, and weak descriptions
+- **MCP servers** view — transport, scope and live connection status
+- **Health** view — surfaces conflicts, drift and weak descriptions
 - Card and dense **list** density, with per-skill detail pop-outs
 - Custom frameless window chrome and a quiet, design-matched scrollbar
-- Everything runs in the Rust backend; no telemetry
 
 ## How it works
 
 Skillet never asks you for anything. It reads what the Claude Code CLI already
-wrote under `~/.claude`:
+wrote, all in the Rust backend:
 
-**Skills** — three scopes are scanned. Personal skills from
-`~/.claude/skills/`, project skills from the nearest `.claude/skills/`, and
-plugin skills resolved from `~/.claude/plugins/installed_plugins.json` so each
-plugin is counted once (no cache/marketplace duplicates). Every `SKILL.md` is
-parsed for its frontmatter, and the description is run through a small lint that
-checks whether it signals *when* the skill should fire.
-
-**MCP servers** — pulled from `claude mcp list`, with transport, scope, and
-connection status. The call runs on a worker thread with a timeout so a hanging
-health check can never freeze the window.
-
-**Health** — the scanned skills and servers are cross-checked for issues
-(name collisions, drift on disk, weak descriptions) and listed by severity.
-
-All reads happen in the Rust backend; nothing leaves your machine.
+1. **Skills** are scanned across three scopes — personal (`~/.claude/skills/`),
+   project (the nearest `.claude/skills/`) and plugin, resolved from
+   `~/.claude/plugins/installed_plugins.json` so each plugin is counted once
+   (no cache/marketplace duplicates).
+2. Every `SKILL.md` is parsed for its frontmatter, and the description is run
+   through a small lint that checks whether it signals *when* the skill fires.
+3. **MCP servers** are pulled from `claude mcp list` on a timed worker thread,
+   so a hanging health check never freezes the window.
+4. **Health** cross-checks the scanned skills and servers — name collisions,
+   drift on disk, weak descriptions — and lists the findings by severity.
 
 ## Requirements
 
@@ -83,6 +79,12 @@ npm install
 npx tauri dev
 ```
 
+## Privacy
+
+Skillet is local-first. Every read happens in the Rust backend, against files
+the Claude Code CLI already wrote to your machine. There is no account, no
+Skillet backend, and no telemetry — nothing leaves your computer.
+
 ## Status
 
 M0 — read-only. Skillet scans and displays; it does not modify anything on
@@ -92,4 +94,4 @@ given working mode.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) (c) [offbyone1](https://github.com/offbyone1)
