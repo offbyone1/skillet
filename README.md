@@ -137,7 +137,10 @@ The workflow needs two repository secrets:
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | The password for that key |
 
 Generate a key pair once with `npx tauri signer generate` and keep the private
-key out of the repo.
+key out of the repo. Set the secrets from a shell that writes plain UTF-8, for
+example `gh secret set TAURI_SIGNING_PRIVATE_KEY < key` in bash; Windows
+PowerShell 5.1 adds a byte-order mark and the signer then fails with
+"Invalid symbol 239".
 
 ## Tests
 
