@@ -5,7 +5,6 @@ export interface Skill {
   name: string;
   scope: Scope;
   plugin: string | null;
-  enabled: boolean;
   description: string;
   allowed_tools: string | null;
   size_bytes: number;

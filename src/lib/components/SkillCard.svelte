@@ -4,7 +4,6 @@
   let {
     skill,
     index,
-    ontoggle,
     onfav,
     onopen,
     favorite = false,
@@ -12,14 +11,13 @@
   }: {
     skill: Skill;
     index: number;
-    ontoggle: (s: Skill) => void;
     onfav?: (s: Skill) => void;
     onopen?: (s: Skill, e: Event) => void;
     favorite?: boolean;
     density?: "cards" | "list";
   } = $props();
 
-  const locked = $derived(skill.scope === "plugin");
+  const fromPlugin = $derived(skill.scope === "plugin");
   const qTxt = $derived(
     skill.desc_quality === "good"
       ? "Good description"
@@ -27,15 +25,11 @@
         ? "Weak description"
         : "Poor description",
   );
-
-  function toggle() {
-    if (!locked) ontoggle(skill);
-  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
-  class="card stagger {density} {onopen ? 'clickable' : ''} {skill.enabled ? '' : 'archived'}"
+  class="card stagger {density} {onopen ? 'clickable' : ''}"
   style="animation-delay:{index * 28}ms"
   title={density === "list" ? skill.description : null}
   role={onopen ? "button" : null}
@@ -46,14 +40,9 @@
   <div class="card-top">
     <div class="card-name-row">
       <span class="qdot {skill.desc_quality}" title={qTxt}></span>
-      {#if locked}
-        <svg class="lock-ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="1.9">
-          <rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
-        </svg>
-      {/if}
       <span class="card-name">{skill.name}</span>
     </div>
-    {#if locked}
+    {#if fromPlugin}
       <span class="scope-badge scope-plugin">plugin</span>
     {:else}
       <button
@@ -83,22 +72,8 @@
       <div class="stat"><div class="v">{skill.file_count}</div><div class="k">Files</div></div>
       <div class="stat"><div class="v">{skill.modified}</div><div class="k">Modified</div></div>
     </div>
-    <div class="toggle-wrap">
-      <button
-        type="button"
-        class="toggle {locked ? 'locked' : skill.enabled ? 'on' : ''}"
-        role="switch"
-        aria-checked={skill.enabled}
-        aria-label="{skill.name} {skill.enabled ? 'disable' : 'enable'}"
-        disabled={locked}
-        onclick={(e) => {
-          e.stopPropagation();
-          toggle();
-        }}
-      >
-        <div class="knob"></div>
-      </button>
-      <span class="toggle-lbl">{locked ? "Locked" : skill.enabled ? "Active" : "Off"}</span>
-    </div>
+    {#if !fromPlugin}
+      <span class="scope-badge scope-{skill.scope}">{skill.scope}</span>
+    {/if}
   </div>
 </div>

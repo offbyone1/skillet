@@ -1,8 +1,10 @@
 <script lang="ts">
   import "$lib/global.css";
+  import { onMount } from "svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import Settings from "$lib/components/Settings.svelte";
   import { settings, applySettings, persist } from "$lib/settings.svelte";
+  import { loadVersion, scheduleAutoUpdateCheck } from "$lib/update.svelte";
 
   let { children } = $props();
 
@@ -11,9 +13,14 @@
 
   // keep <html> data-* attributes and localStorage in sync with settings
   $effect(() => {
-    void [settings.theme, settings.reduceMotion, settings.showBackdrop];
+    void [settings.theme, settings.reduceMotion, settings.showBackdrop, settings.autoUpdate];
     applySettings();
     persist();
+  });
+
+  onMount(() => {
+    void loadVersion();
+    scheduleAutoUpdateCheck();
   });
 </script>
 

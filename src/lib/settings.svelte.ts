@@ -8,6 +8,7 @@ type Settings = {
   theme: Theme;
   reduceMotion: boolean;
   showBackdrop: boolean;
+  autoUpdate: boolean;
 };
 
 const KEY = "skillet.settings";
@@ -27,6 +28,7 @@ export const settings = $state<Settings>({
   theme: saved.theme ?? "dark",
   reduceMotion: saved.reduceMotion ?? false,
   showBackdrop: saved.showBackdrop ?? true,
+  autoUpdate: saved.autoUpdate ?? true,
 });
 
 // Pop-out open state + the grow-from origin offset (deck-style animation).

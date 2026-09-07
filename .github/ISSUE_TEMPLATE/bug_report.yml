@@ -1,0 +1,65 @@
+name: Bug Report
+description: Report a bug in Skillet
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: What happened? What did you expect?
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows Version
+      placeholder: "e.g., Windows 11 24H2"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Skillet Version
+      description: Shown in Settings.
+      placeholder: "e.g., 0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: claude
+    attributes:
+      label: Claude Code Version
+      description: Output of `claude --version`; also shown at the bottom of the sidebar.
+      placeholder: "e.g., 2.1.181"
+
+  - type: dropdown
+    id: view
+    attributes:
+      label: Where
+      options:
+        - Skills
+        - MCPs
+        - Agent Starter
+        - Health
+        - Settings / updates
+        - Install / start
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. ...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: >
+        Plugin marketplaces in use, unusual skill folders, MCP transports involved. If the
+        problem is a parsing issue, paste the relevant lines of `claude mcp list` or the
+        SKILL.md frontmatter with anything private removed.

@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-app",
+  "productName": "Skillet",
   "version": "0.1.0",
-  "identifier": "com.skillet.dev",
+  "identifier": "com.offbyone1.skillet",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -22,12 +22,17 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
     }
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "targets": ["nsis", "msi"],
+    "publisher": "Off by One",
+    "copyright": "Copyright © 2026 offbyone1",
+    "shortDescription": "Every Claude Code skill and MCP server at a glance",
+    "longDescription": "Skillet is a local desktop atelier for your Claude Code setup. It reads the skills and MCP servers the CLI already keeps on disk, checks their health and launches isolated agent sessions from loadout profiles.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -35,5 +40,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVBRjdDQzFCM0I5MEQ1MkEKUldRcTFaQTdHOHozV3JySkhUTzVnRVZsSjVrVE5UNXc0REdleU41TkJYS1hFRFJmMzBBT3N4Y0gK",
+      "endpoints": [
+        "https://github.com/offbyone1/skillet/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

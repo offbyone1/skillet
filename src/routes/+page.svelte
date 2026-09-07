@@ -33,8 +33,7 @@
   const f = $derived(search.trim().toLowerCase());
   const match = (s: Skill) =>
     !f || s.name.toLowerCase().includes(f) || s.description.toLowerCase().includes(f);
-  const onSkills = $derived(skills.filter((s) => s.enabled && match(s)));
-  const offSkills = $derived(skills.filter((s) => !s.enabled && match(s)));
+  const shown = $derived(skills.filter(match));
 
   // Plugin skills (caveman-*, superpowers:*, …) are sub-skills of one parent
   // plugin — fold them into collapsible groups so they don't drown the user's
@@ -53,26 +52,24 @@
       .map(([plugin, skills]) => ({ plugin, skills }))
       .sort((a, b) => a.plugin.localeCompare(b.plugin));
   }
-  const onGroups = $derived(groupByPlugin(onSkills));
-  const offLoose = $derived(loose(offSkills));
-  const offGroups = $derived(groupByPlugin(offSkills));
+  const groups = $derived(groupByPlugin(shown));
 
   // Favourites: a starred subset of (non-plugin) skills, pinned into their own
-  // section above "Aktiv". Keyed by path. In-memory for M0.
+  // section above the rest. Keyed by path, in-memory only.
   let favorites = $state<Set<string>>(new Set());
   function toggleFav(s: Skill) {
     const next = new Set(favorites);
     next.has(s.path) ? next.delete(s.path) : next.add(s.path);
     favorites = next;
   }
-  const favLoose = $derived(loose(onSkills).filter((s) => favorites.has(s.path)));
-  const aktivLoose = $derived(loose(onSkills).filter((s) => !favorites.has(s.path)));
+  const favLoose = $derived(loose(shown).filter((s) => favorites.has(s.path)));
+  const restLoose = $derived(loose(shown).filter((s) => !favorites.has(s.path)));
 
   // A plugin renders as a card stack (deck); clicking it pops out the individual
   // sub-skills. `openPlugin` holds the plugin whose pop-out is currently open.
   let openPlugin = $state<string | null>(null);
   const openGroup = $derived(
-    [...onGroups, ...offGroups].find((g) => g.plugin === openPlugin) ?? null,
+    groups.find((g) => g.plugin === openPlugin) ?? null,
   );
   // Offset (deck-center → viewport-center) so the pop-out can animate as if
   // growing out of the card the user clicked, then settle in the screen centre.
@@ -98,22 +95,6 @@
   }
   const skillQualityLabel = (q: string) =>
     q === "good" ? "Good description" : q === "warn" ? "Weak description" : "Poor description";
-  function toggleSkill(s: Skill) {
-    // M0 is read-only on disk; this is an optimistic preview of M2 enable/disable.
-    s.enabled = !s.enabled;
-    skills = [...skills];
-  }
-
-  // A plugin is enabled/disabled as a unit — toggling flips all its sub-skills
-  // (optimistic preview of M2). `e` may be a click on the deck's toggle, where
-  // we must stop the deck from also opening its pop-out.
-  function togglePlugin(g: { plugin: string; skills: Skill[] }, e?: Event) {
-    e?.stopPropagation();
-    const next = !g.skills.every((s) => s.enabled);
-    for (const s of g.skills) s.enabled = next;
-    skills = [...skills];
-  }
-  const pluginOn = (g: { skills: Skill[] }) => g.skills.every((s) => s.enabled);
 
   // ============ AGENT-STARTER ============
   let profiles = $state<Loadout[]>([]);
@@ -168,7 +149,7 @@
     if (!p || p.builtin) {
       base.id = crypto.randomUUID();
       base.builtin = false;
-      if (p?.builtin) base.name = `${p.name} (Kopie)`;
+      if (p?.builtin) base.name = `${p.name} (copy)`;
     }
     editing = base;
   }
@@ -363,7 +344,7 @@
     </div>
     <div class="sidebar-foot">
       <div><b>{skills.length}</b> Skills &middot; <b>{mcp.length}</b> Server</div>
-      <div>claude {version} &middot; M0 read-only</div>
+      <div>claude {version} &middot; read-only</div>
     </div>
   </aside>
 
@@ -373,7 +354,7 @@
       <section class="view">
         <div class="page-head">
           <h2>Skills</h2>
-          <p>All detected Claude Code skills. Enable or disable per entry. Plugin skills are locked.</p>
+          <p>Every Claude Code skill on this machine — personal, project and plugin. Skillet reads them; it changes nothing.</p>
         </div>
         <div class="control-row">
           <div class="search-wrap">
@@ -394,7 +375,7 @@
 
         {#snippet deck(g: { plugin: string; skills: Skill[] }, i: number)}
           <div
-            class="deck stagger {density} {pluginOn(g) ? '' : 'archived'}"
+            class="deck stagger {density}"
             style="animation-delay:{i * 28}ms"
             role="button"
             tabindex="0"
@@ -413,19 +394,7 @@
             <span class="hair"></span>
             <span class="card-bottom">
               <span class="deck-open">Open ›</span>
-              <span class="toggle-wrap">
-                <button
-                  type="button"
-                  class="toggle {pluginOn(g) ? 'on' : ''}"
-                  role="switch"
-                  aria-checked={pluginOn(g)}
-                  aria-label="Plugin {g.plugin} {pluginOn(g) ? 'disable' : 'enable'}"
-                  onclick={(e) => togglePlugin(g, e)}
-                >
-                  <span class="knob"></span>
-                </button>
-                <span class="toggle-lbl">{pluginOn(g) ? "Active" : "Off"}</span>
-              </span>
+              <span class="toggle-lbl">{g.skills.length} {g.skills.length === 1 ? "skill" : "skills"}</span>
             </span>
           </div>
         {/snippet}
@@ -434,56 +403,35 @@
           <div class="group-head"><h3>Favorites</h3><span class="cnt">{favLoose.length}</span><div class="rule"></div></div>
           <div class="grid {density}">
             {#each favLoose as s, i (s.path)}
-              <SkillCard skill={s} index={i} ontoggle={toggleSkill} onfav={toggleFav} onopen={openSkillCard} favorite {density} />
+              <SkillCard skill={s} index={i} onfav={toggleFav} onopen={openSkillCard} favorite {density} />
             {/each}
           </div>
           <div class="sec-divider"></div>
         {/if}
 
-        <div class="group-head"><h3>Active</h3><span class="cnt">{onSkills.length} {onSkills.length === 1 ? "Skill" : "Skills"}</span><div class="rule"></div></div>
+        <div class="group-head"><h3>Installed</h3><span class="cnt">{shown.length} {shown.length === 1 ? "Skill" : "Skills"}</span><div class="rule"></div></div>
         {#if loading}
           <div class="grid"><div class="empty">Scanning skills …</div></div>
         {:else if errored}
-          <div class="grid"><div class="empty">Scan failed — is the app running via `tauri dev`?</div></div>
-        {:else if onSkills.length}
-          {#if onGroups.length}
+          <div class="grid"><div class="empty">Scan failed — is the Claude Code CLI installed?</div></div>
+        {:else if shown.length}
+          {#if groups.length}
             <div class="deck-grid {density}">
-              {#each onGroups as g, i (g.plugin)}
+              {#each groups as g, i (g.plugin)}
                 {@render deck(g, i)}
               {/each}
             </div>
-            {#if aktivLoose.length}<div class="sec-divider"></div>{/if}
+            {#if restLoose.length}<div class="sec-divider"></div>{/if}
           {/if}
-          {#if aktivLoose.length}
+          {#if restLoose.length}
             <div class="grid {density}">
-              {#each aktivLoose as s, i (s.path)}
-                <SkillCard skill={s} index={i} ontoggle={toggleSkill} onfav={toggleFav} onopen={openSkillCard} favorite={favorites.has(s.path)} {density} />
+              {#each restLoose as s, i (s.path)}
+                <SkillCard skill={s} index={i} onfav={toggleFav} onopen={openSkillCard} favorite={favorites.has(s.path)} {density} />
               {/each}
             </div>
           {/if}
         {:else}
-          <div class="grid"><div class="empty">No active skills found.</div></div>
-        {/if}
-
-        <div class="group-head"><h3>Disabled</h3><span class="cnt">{offSkills.length} {offSkills.length === 1 ? "Skill" : "Skills"}</span><div class="rule"></div></div>
-        {#if offSkills.length}
-          {#if offGroups.length}
-            <div class="deck-grid {density}">
-              {#each offGroups as g, i (g.plugin)}
-                {@render deck(g, i)}
-              {/each}
-            </div>
-            {#if offLoose.length}<div class="sec-divider"></div>{/if}
-          {/if}
-          {#if offLoose.length}
-            <div class="grid {density}">
-              {#each offLoose as s, i (s.path)}
-                <SkillCard skill={s} index={i} ontoggle={toggleSkill} onfav={toggleFav} onopen={openSkillCard} favorite={favorites.has(s.path)} {density} />
-              {/each}
-            </div>
-          {/if}
-        {:else}
-          <div class="grid"><div class="empty">Nothing disabled.</div></div>
+          <div class="grid"><div class="empty">No skills found.</div></div>
         {/if}
       </section>
     {/if}
@@ -615,19 +563,6 @@
           <span class="pop-cnt">{openGroup.skills.length} Skills</span>
         </div>
         <div class="pop-actions">
-          <span class="toggle-wrap">
-            <button
-              type="button"
-              class="toggle {pluginOn(openGroup) ? 'on' : ''}"
-              role="switch"
-              aria-checked={pluginOn(openGroup)}
-              aria-label="Plugin {openGroup.plugin} {pluginOn(openGroup) ? 'disable' : 'enable'}"
-              onclick={() => togglePlugin(openGroup)}
-            >
-              <span class="knob"></span>
-            </button>
-            <span class="toggle-lbl">{pluginOn(openGroup) ? "Active" : "Off"}</span>
-          </span>
           <button class="pop-close" aria-label="Close" onclick={() => (openPlugin = null)}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
           </button>
@@ -635,7 +570,7 @@
       </div>
       <div class="pop-body grid">
         {#each openGroup.skills as s, i (s.path)}
-          <SkillCard skill={s} index={i} ontoggle={toggleSkill} />
+          <SkillCard skill={s} index={i} />
         {/each}
       </div>
     </div>
@@ -694,22 +629,22 @@
       </div>
       <div class="modal-body">
         <div class="form-row">
-          <div class="ff grow"><label>Name</label><input bind:value={editing.name} placeholder="e.g. Research" /></div>
-          <div class="ff"><label>Agent</label>
-            <select bind:value={editing.agent}>
+          <div class="ff grow"><label for="lo-name">Name</label><input id="lo-name" bind:value={editing.name} placeholder="e.g. Research" /></div>
+          <div class="ff"><label for="lo-agent">Agent</label>
+            <select id="lo-agent" bind:value={editing.agent}>
               <option value="claude">claude</option>
               <option value="codex">codex</option>
             </select>
           </div>
         </div>
-        <div class="name-field"><label>Note</label><input bind:value={editing.note} placeholder="short, optional" /></div>
+        <div class="name-field"><label for="lo-note">Note</label><input id="lo-note" bind:value={editing.note} placeholder="short, optional" /></div>
 
         <div class="form-row">
-          <div class="ff grow"><label>Model</label>
-            <input bind:value={editing.model} placeholder={editing.agent === "codex" ? "e.g. gpt-5.5" : "opus / sonnet / haiku / fable"} />
+          <div class="ff grow"><label for="lo-model">Model</label>
+            <input id="lo-model" bind:value={editing.model} placeholder={editing.agent === "codex" ? "e.g. gpt-5.5" : "opus / sonnet / haiku / fable"} />
           </div>
-          <div class="ff"><label>Effort {editing.agent !== "claude" ? "(claude)" : ""}</label>
-            <select bind:value={editing.effort} disabled={editing.agent !== "claude"}>
+          <div class="ff"><label for="lo-effort">Effort {editing.agent !== "claude" ? "(claude)" : ""}</label>
+            <select id="lo-effort" bind:value={editing.effort} disabled={editing.agent !== "claude"}>
               <option value={null}>—</option>
               <option value="low">low</option>
               <option value="medium">medium</option>
@@ -720,20 +655,20 @@
           </div>
         </div>
 
-        <div class="name-field"><label>Working directory (default — overridable at launch)</label>
+        <div class="name-field"><label for="lo-workdir">Working directory (default — overridable at launch)</label>
           <div class="wd-row">
-            <input bind:value={editing.workdir} placeholder="C:\\Users\\…\\project" />
+            <input id="lo-workdir" bind:value={editing.workdir} placeholder="C:\\Users\\…\\project" />
             <button class="btn" onclick={chooseEditWorkdir}>Choose…</button>
           </div>
         </div>
 
-        <div class="name-field"><label>Prompt (empty = interactive · set = headless <code>-p</code>)</label>
-          <textarea class="ta" bind:value={editing.prompt} rows="2" placeholder="optional start prompt"></textarea>
+        <div class="name-field"><label for="lo-prompt">Prompt (empty = interactive · set = headless <code>-p</code>)</label>
+          <textarea id="lo-prompt" class="ta" bind:value={editing.prompt} rows="2" placeholder="optional start prompt"></textarea>
         </div>
 
         <div class="toggle-row">
           <span class="toggle-wrap">
-            <button type="button" class="toggle {editing.skipPerms ? 'on' : ''}" role="switch" aria-checked={editing.skipPerms} onclick={() => editing && (editing.skipPerms = !editing.skipPerms)}>
+            <button type="button" class="toggle {editing.skipPerms ? 'on' : ''}" role="switch" aria-checked={editing.skipPerms} aria-label="Launch with --dangerously-skip-permissions" onclick={() => editing && (editing.skipPerms = !editing.skipPerms)}>
               <span class="knob"></span>
             </button>
             <span class="toggle-lbl"><code>--dangerously-skip-permissions</code></span>
@@ -812,9 +747,9 @@
         </button>
       </div>
       <div class="modal-body">
-        <div class="name-field"><label>Working directory</label>
+        <div class="name-field"><label for="launch-workdir">Working directory</label>
           <div class="wd-row">
-            <input bind:value={launchWorkdir} placeholder="Choose a directory…" onchange={() => refreshTrust(launchWorkdir)} />
+            <input id="launch-workdir" bind:value={launchWorkdir} placeholder="Choose a directory…" onchange={() => refreshTrust(launchWorkdir)} />
             <button class="btn" onclick={chooseLaunchWorkdir}>Choose…</button>
           </div>
         </div>

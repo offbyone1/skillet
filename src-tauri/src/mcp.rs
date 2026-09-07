@@ -237,3 +237,253 @@ fn insert_keys(v: &Value, key: &str, scope: &str, map: &mut HashMap<String, Stri
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Real `claude mcp list` output (Claude Code 2.1.x, captured 2026-09-07),
+    /// sanitized. Lines start at column 0 on purpose: the fixture is fed
+    /// line-by-line exactly as the CLI prints it.
+    const FIXTURE: &str = r"Checking MCP server health…
+
+claude.ai Google Drive: https://drivemcp.googleapis.com/mcp/v1 - ✔ Connected
+plugin:context7:context7: https://mcp.context7.com/mcp (HTTP) - ✔ Connected
+plugin:playwright:playwright: npx @playwright/mcp@latest - ✔ Connected
+example: https://mcp.example.com/ (HTTP) - ✘ Failed to connect — Protected resource https://mcp.example.com/mcp does not match expected https://mcp.example.com/ (or origin)
+github: https://api.githubcopilot.com/mcp/ (HTTP) - ✔ Connected
+local-tool: uv run --directory C:\Users\me\mcp-servers\demo demo-mcp - ✘ Failed to connect — CONNECTION_CLOSED: Connection closed
+chrome-devtools: npx -y chrome-devtools-mcp@latest --browserUrl http://127.0.0.1:9222 - ✔ Connected
+";
+
+    /// Scope map as `scope_map()` would build it from the config files.
+    fn scopes() -> HashMap<String, String> {
+        let mut m = HashMap::new();
+        m.insert("github".to_string(), "user".to_string());
+        m.insert("local-tool".to_string(), "local".to_string());
+        m
+    }
+
+    fn parse(line: &str) -> McpServer {
+        parse_line(line, &scopes()).unwrap_or_else(|| panic!("line should parse: {line}"))
+    }
+
+    fn parse_fixture() -> Vec<McpServer> {
+        FIXTURE.lines().filter_map(|l| parse_line(l, &scopes())).collect()
+    }
+
+    fn find<'a>(servers: &'a [McpServer], name: &str) -> &'a McpServer {
+        servers
+            .iter()
+            .find(|s| s.name == name)
+            .unwrap_or_else(|| panic!("no server named {name}"))
+    }
+
+    #[test]
+    fn header_and_blank_lines_are_ignored() {
+        let s = scopes();
+        assert!(parse_line("Checking MCP server health…", &s).is_none());
+        assert!(parse_line("", &s).is_none());
+        assert!(parse_line("   ", &s).is_none());
+
+        let all = parse_fixture();
+        let names: Vec<&str> = all.iter().map(|m| m.name.as_str()).collect();
+        assert_eq!(
+            names,
+            vec![
+                "claude.ai Google Drive",
+                "plugin:context7:context7",
+                "plugin:playwright:playwright",
+                "example",
+                "github",
+                "local-tool",
+                "chrome-devtools",
+            ]
+        );
+    }
+
+    #[test]
+    fn name_and_endpoint_split_on_first_colon_space() {
+        // plugin names carry extra ':' with no space after — only ": " splits
+        let m = parse("plugin:context7:context7: https://mcp.context7.com/mcp (HTTP) - ✔ Connected");
+        assert_eq!(m.name, "plugin:context7:context7");
+        assert_eq!(m.endpoint, "https://mcp.context7.com/mcp");
+
+        // a name may contain spaces
+        let m = parse("claude.ai Google Drive: https://drivemcp.googleapis.com/mcp/v1 - ✔ Connected");
+        assert_eq!(m.name, "claude.ai Google Drive");
+        assert_eq!(m.endpoint, "https://drivemcp.googleapis.com/mcp/v1");
+
+        // a drive letter in the command and a ": " inside the status text are
+        // not separators: status is split off first, then the first ": " wins
+        let m = parse(r"local-tool: uv run --directory C:\Users\me\mcp-servers\demo demo-mcp - ✘ Failed to connect — CONNECTION_CLOSED: Connection closed");
+        assert_eq!(m.name, "local-tool");
+        assert_eq!(m.endpoint, r"uv run --directory C:\Users\me\mcp-servers\demo demo-mcp");
+    }
+
+    #[test]
+    fn http_suffix_is_stripped_and_means_http_transport() {
+        let all = parse_fixture();
+        for (name, endpoint) in [
+            ("plugin:context7:context7", "https://mcp.context7.com/mcp"),
+            ("example", "https://mcp.example.com/"),
+            ("github", "https://api.githubcopilot.com/mcp/"),
+        ] {
+            let m = find(&all, name);
+            assert_eq!(m.endpoint, endpoint, "{name}");
+            assert_eq!(m.transport, "http", "{name}");
+        }
+
+        // an https:// endpoint without the annotation is http as well
+        let m = find(&all, "claude.ai Google Drive");
+        assert_eq!(m.endpoint, "https://drivemcp.googleapis.com/mcp/v1");
+        assert_eq!(m.transport, "http");
+
+        // (SSE) is an http-family hint too; the hint is case-insensitive and
+        // on its own is enough to make a non-URL endpoint http
+        let m = parse("a: https://x.example/sse (SSE) - ✔ Connected");
+        assert_eq!(m.endpoint, "https://x.example/sse");
+        assert_eq!(m.transport, "http");
+        let m = parse("b: my-gateway (http) - ✔ Connected");
+        assert_eq!(m.endpoint, "my-gateway");
+        assert_eq!(m.transport, "http");
+    }
+
+    #[test]
+    fn only_transport_parentheticals_are_stripped() {
+        let m = parse("dev: node server.js (dev) - ✔ Connected");
+        assert_eq!(m.endpoint, "node server.js (dev)");
+        assert_eq!(m.transport, "stdio");
+    }
+
+    #[test]
+    fn stdio_commands_yield_stdio_transport() {
+        let all = parse_fixture();
+        let m = find(&all, "plugin:playwright:playwright");
+        assert_eq!(m.endpoint, "npx @playwright/mcp@latest");
+        assert_eq!(m.transport, "stdio");
+        assert_eq!(find(&all, "local-tool").transport, "stdio");
+
+        // a URL *inside* a command does not make it http; the full command survives
+        let m = find(&all, "chrome-devtools");
+        assert_eq!(
+            m.endpoint,
+            "npx -y chrome-devtools-mcp@latest --browserUrl http://127.0.0.1:9222"
+        );
+        assert_eq!(m.transport, "stdio");
+    }
+
+    #[test]
+    fn dash_inside_command_does_not_break_the_status_split() {
+        // status is split off the *right*, so " - " inside the command survives
+        let m = parse("range: npx -y tool --range 1 - 5 - ✔ Connected");
+        assert_eq!(m.endpoint, "npx -y tool --range 1 - 5");
+        assert_eq!(m.status, "connected");
+
+        // a trailing " - <not a status>" stays part of the command
+        let m = parse("nostatus: npx tool - baz");
+        assert_eq!(m.endpoint, "npx tool - baz");
+        assert_eq!(m.status, "unknown");
+    }
+
+    #[test]
+    fn fixture_statuses() {
+        let all = parse_fixture();
+        for name in [
+            "claude.ai Google Drive",
+            "plugin:context7:context7",
+            "plugin:playwright:playwright",
+            "github",
+            "chrome-devtools",
+        ] {
+            assert_eq!(find(&all, name).status, "connected", "{name}");
+        }
+        for name in ["example", "local-tool"] {
+            assert_eq!(find(&all, name).status, "error", "{name}");
+        }
+    }
+
+    #[test]
+    fn needs_auth_pending_and_unknown_statuses() {
+        let m = parse("foo: https://x.example/mcp (HTTP) - ⚠ Needs authentication");
+        assert_eq!(m.status, "needs-auth");
+        assert_eq!(m.endpoint, "https://x.example/mcp");
+
+        assert_eq!(parse("foo: https://x.example/mcp - ⏸ Pending").status, "pending");
+
+        // no status suffix at all
+        let m = parse("foo: https://x.example/mcp");
+        assert_eq!(m.status, "unknown");
+        assert_eq!(m.endpoint, "https://x.example/mcp");
+    }
+
+    #[test]
+    fn classify_status_keywords() {
+        assert_eq!(classify_status("✔ Connected"), "connected");
+        assert_eq!(
+            classify_status("✘ Failed to connect — CONNECTION_CLOSED: Connection closed"),
+            "error"
+        );
+        assert_eq!(classify_status("Error: timeout"), "error");
+        assert_eq!(classify_status("⚠ Needs authentication"), "needs-auth");
+        assert_eq!(classify_status("Pending"), "pending");
+        assert_eq!(classify_status(""), "unknown");
+        assert_eq!(classify_status("something else"), "unknown");
+    }
+
+    #[test]
+    fn looks_like_status_accepts_glyphs_or_known_words() {
+        assert!(looks_like_status("✔ Connected"));
+        assert!(looks_like_status("✘ Failed"));
+        assert!(looks_like_status("⚠ Needs authentication"));
+        assert!(looks_like_status("Connected"));
+        assert!(looks_like_status("failed"));
+        assert!(!looks_like_status(""));
+        assert!(!looks_like_status("5"));
+        assert!(!looks_like_status("baz"));
+        assert!(!looks_like_status("--browserUrl http://127.0.0.1:9222"));
+    }
+
+    #[test]
+    fn managed_prefixes_and_scopes() {
+        let all = parse_fixture();
+        for name in ["plugin:context7:context7", "plugin:playwright:playwright"] {
+            let m = find(&all, name);
+            assert!(m.managed, "{name}");
+            assert_eq!(m.scope, "plugin", "{name}");
+        }
+        let m = find(&all, "claude.ai Google Drive");
+        assert!(m.managed);
+        assert_eq!(m.scope, "managed");
+
+        // plain servers take their scope from the config map, "—" when absent
+        let m = find(&all, "github");
+        assert!(!m.managed);
+        assert_eq!(m.scope, "user");
+        assert_eq!(find(&all, "local-tool").scope, "local");
+        assert_eq!(find(&all, "example").scope, "—");
+        assert_eq!(find(&all, "chrome-devtools").scope, "—");
+
+        // `mcp list` never reports tool counts
+        assert!(all.iter().all(|m| m.tools.is_none()));
+    }
+
+    #[test]
+    fn prefix_scope_beats_config_map() {
+        let mut s = scopes();
+        s.insert("plugin:context7:context7".into(), "user".into());
+        s.insert("claude.ai Google Drive".into(), "project".into());
+        let m = parse_line(
+            "plugin:context7:context7: https://mcp.context7.com/mcp (HTTP) - ✔ Connected",
+            &s,
+        )
+        .unwrap();
+        assert_eq!(m.scope, "plugin");
+        let m = parse_line(
+            "claude.ai Google Drive: https://drivemcp.googleapis.com/mcp/v1 - ✔ Connected",
+            &s,
+        )
+        .unwrap();
+        assert_eq!(m.scope, "managed");
+    }
+}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { settings, ui } from "$lib/settings.svelte";
+  import { update, checkForUpdates, installUpdate } from "$lib/update.svelte";
 
   function close() {
     ui.open = false;
@@ -62,7 +63,40 @@
           </div>
           {@render sw(settings.showBackdrop, () => (settings.showBackdrop = !settings.showBackdrop), "Background pattern")}
         </div>
+
+        <div class="set-row">
+          <div class="set-label">
+            <div class="set-name">Check for updates automatically</div>
+            <div class="set-hint">Once a day, from the GitHub releases of offbyone1/skillet</div>
+          </div>
+          {@render sw(settings.autoUpdate, () => (settings.autoUpdate = !settings.autoUpdate), "Automatic update checks")}
+        </div>
+
+        <div class="set-row">
+          <div class="set-label">
+            <div class="set-name">Skillet {update.version}</div>
+            <div class="set-hint update-status {update.kind}">{update.status || "Signed updates, installed on request."}</div>
+          </div>
+          {#if update.availableVersion}
+            <button class="btn btn-accent" disabled={update.installing} onclick={installUpdate}>
+              {update.installing ? "Installing…" : `Install ${update.availableVersion}`}
+            </button>
+          {:else}
+            <button class="btn" disabled={update.checking} onclick={() => checkForUpdates(true)}>
+              {update.checking ? "Checking…" : "Check now"}
+            </button>
+          {/if}
+        </div>
       </div>
     </div>
   </div>
 {/if}
+
+<style>
+  .update-status.error {
+    color: #e0806f;
+  }
+  .update-status.success {
+    color: #c9a24b;
+  }
+</style>
